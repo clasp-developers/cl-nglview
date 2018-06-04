@@ -1,8 +1,8 @@
 
-(asdf:defsystem #:nglview
+(asdf:defsystem #:cl-nglview
     :description "The ngl widget for cl-jupyter with widgets"
     :version "0.1"
-    :author "Kevin Esslinger"
+    :author "Kevin Esslinger, Alex Rose, Christian Schafmeister"
     :license "LGPL2. See LICENSE."
   :depends-on (:cl-jupyter
                :cl-jupyter-widgets

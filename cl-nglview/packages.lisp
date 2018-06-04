@@ -17,6 +17,7 @@
   (:use #:cl)
   (:shadow #:count #:structure)
   (:export
+   #:make-nglwidget
    #:nglwidget
    #:shape
    #:remote-call-thread-queue
@@ -35,6 +36,7 @@
    #:coordinates-dict
    #:send-binary
    #:show-pdbid
+   #:*backends*
    )
   (:import-from :fredokun-utilities #:[] #:[]-contains))
 
