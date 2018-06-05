@@ -1457,7 +1457,7 @@ kwargs=kwargs2)
   (if (not (loaded widget))
       (error "must display view first"))
   (if split
-      (%move-notebook-to-the-right js-utils))
+      (js-utils-move-notebook-to-the-right js-utils))
   (%remote-call widget "setDialog" :target "Widget"))
 
 
