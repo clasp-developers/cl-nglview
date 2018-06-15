@@ -48,7 +48,7 @@
       (setf trajlist pytraj-trajectory)
       (setf trajlist (list pytraj-trajectory)))
     (setf trajlist (loop for traj in trajlist
-		      collect (make-instance 'PyTrajTrajectory :traj traj)))
+		      collect (make-instance 'PyTrajTrajectory :trajectory traj)))
     (apply #'make-nglwidget :trajlist trajlist kwargs)))
 
 (defun show-parmed (parmed-structure &rest kwargs &key &allow-other-keys)
