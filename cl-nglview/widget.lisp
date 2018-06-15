@@ -117,7 +117,7 @@
                       :initform nil)
    (%camera-str :initarg :camera-str
                 :accessor camera-str
-                :type cunicode
+                :type cljw:cunicode
                 :initform (cljw:unicode "orthographic")
                 :metadata (:sync t :json-name "_camera_str"
                            :caseless-str-enum ( "perspective" "orthographic")))
