@@ -1153,7 +1153,7 @@ kwargs=kwargs2)
   (append (ngl-component-ids widget) (list (uuid:make-v4-uuid)))
   (%update-component-auto-completion widget))
 
-(defmethod %load-data ((widget nglwidget) obj &key kwargs)
+(defmethod %load-data ((widget nglwidget) obj &rest kwargs &key &allow-other-keys)
   (cl-jupyter:logg 2 "entered %load-data~%")
   (check-type kwargs list)
   (let* ((kwargs2 (camelize-dict kwargs))
@@ -1413,8 +1413,7 @@ kwargs=kwargs2)
              do (let ((comp (make-instance 'ComponentViewer :%view widget :%index index))
                       (name (concatenate 'string "component_" (write-to-string index))))
                   (incf index)
-                  (error "We need a setattr function!!!!")
-                  (error "we need an in function! Maybe we have one. %update-component-auto-completion in widget.lisp")))))
+                  (error "We need a setattr function!!!!")))))
 
 #|
   def _update_component_auto_completion(self):
