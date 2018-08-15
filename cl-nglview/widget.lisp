@@ -5,7 +5,7 @@
 (defmacro @observe (slot observer)
   nil)
 
-(defparameter *frontend-version* "1.1.2") ;; must match to js/package.json and js/src/widget_ngl.js
+(defparameter *frontend-version* "1.1.5") ;; must match to js/package.json and js/src/widget_ngl.js
 
 (defparameter *excluded-callback-after-firing*
   (list "setUnSyncCamera" "setSelector" "setUnSyncFrame"
