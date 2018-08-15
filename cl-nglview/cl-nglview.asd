@@ -5,7 +5,7 @@
     :author "Kevin Esslinger, Alex Rose, Christian Schafmeister"
     :license "LGPL2. See LICENSE."
   :depends-on (:cl-jupyter
-               :cl-jupyter-widgets
+               :cl-ipywidgets
                :bordeaux-threads
                :trivial-http)
     :serial t
