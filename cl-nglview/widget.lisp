@@ -182,7 +182,7 @@
 ;;   (%init-gui :initarg :gui :accessor gui :initform nil) ;; WHY? does nglview does this
    (%theme :initarg :theme :accessor theme :initform "default")
    (%widget-image :initarg :widget-image :accessor widget-image
-                  :initform (make-instance 'cl-jupyter-widgets:image :width 900))
+                  :initform (make-instance 'cl-ipywidgets:image :width 900))
    (%image-array :initarg :image-array :accessor image-array :initform #())
    (%event :initarg :event :accessor event :initform (make-instance 'pythread:event))
    (%ngl-displayed-callbacks-before-loaded-reversed
@@ -1503,7 +1503,7 @@ kwargs=kwargs2)
          (remhash ,k ,tab)))))
 
 
-(defmethod cl-jupyter-widgets:widget-close ((widget nglwidget))
+(defmethod cl-ipywidgets:widget-close ((widget nglwidget))
   (call-next-method)
   ;; (bordeaux-threads:destroy-thread (remote-call-thread widget))
   (when (handle-msg-thread widget)

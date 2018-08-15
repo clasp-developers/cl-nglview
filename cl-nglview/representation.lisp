@@ -117,7 +117,7 @@
                         (surface-type (get %repr-dict "surfaceType" "ms"))
                         (box-size (get %repr-dict "boxSize" 10))
                         (cutoff (get %repr-dict "cutoff" 0)))))
-          (let ((widget (make-instance 'cl-jupyter-widgets::interactive
+          (let ((widget (make-instance 'cl-ipywidgets::interactive
                                        func
                                        :opacity '(0. 1. 0.1)
                                        :color-scheme *COLOR-SCHEMES*
