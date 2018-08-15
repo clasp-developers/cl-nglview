@@ -783,7 +783,7 @@
 	(repr-button (make-instance 'button
 				    :description "Add"
 				    :tooltip "Add representation. You can also hit Enter in selection box.")))
-    (setf (layout repr-button) (make-instance 'cl-ipywidget::layout
+    (setf (layout repr-button) (make-instance 'cl-ipywidgets::layout
 					      :width "auto"
 					      :flex "1 1 auto")
 	  (width (layout dropdown-repr-name)) *DEFAULT-TEXT-WIDTH*
