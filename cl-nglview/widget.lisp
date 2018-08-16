@@ -271,15 +271,15 @@
 ;;;      (setf (control widget) (make-instance 'viewer-control :view widget))
       #+(or)(warn "What do we do about add_repr_method_shortcut")
       ;;; Handle messages - in Python they start a daemon - WHY????
-      (cljw:on-msg widget '%ngl-handle-msg)
+      (cl-ipykernel:on-msg widget '%ngl-handle-msg)
       #+(or)(progn
               (cl-jupyter:logg 2 "Starting handle-msg-thread from process ~s~%" (bordeaux-threads:current-thread))
               (setf (handle-msg-thread widget)
                     (mp:process-run-function
                      'handle-msg-thread
                      (lambda ()
-                       (cljw:on-msg widget '%ngl-handle-msg)
-                       (cl-jupyter:logg 2 "Calling cljw:on-msg widget with #'%ngl-handle-msg in process: ~s~%" (bordeaux-threads:current-thread))
+                       (cl-ipkernel:on-msg widget '%ngl-handle-msg)
+                       (cl-jupyter:logg 2 "Calling cl-ipykernel:on-msg widget with #'%ngl-handle-msg in process: ~s~%" (bordeaux-threads:current-thread))
                        (loop
                          ;; yield while respecting callbacks to ngl-handle-msg
                          (bordeaux-threads:thread-yield)
