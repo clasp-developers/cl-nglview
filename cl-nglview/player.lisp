@@ -274,7 +274,7 @@
 
 (@observe %interpolation-t %interpolation-t-changed)
 (defmethod %interpolation-t-changed (object name new old)
-  (let ((entry ([] (iparams object) "t")))
+  (let ((entry (fredo-utils:[] (iparams object) "t")))
     (if entry
         (setf (cdr entry) new)
         (setf (iparams object) (cons "t" new)))))
