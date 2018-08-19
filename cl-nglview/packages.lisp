@@ -23,6 +23,7 @@
    #:remote-call-thread-queue
    #:wait-until-finished
    #:show-aggregate
+   #:show-structure-file
    #:trajectory
    #:get-structure-name
    #:get-structure-string
