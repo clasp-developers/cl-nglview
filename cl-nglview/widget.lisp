@@ -1008,7 +1008,7 @@
   (cl-jupyter:logg 2  "%ngl-handle-message in process ~s received content: ~s~%" (bordeaux-threads:current-thread) content)
   (setf (ngl-msg widget) content)
   (cl-jupyter:logg 2 "Just set ngl-msg to content~%")
-  (let ((msg-type (fredo-utils:[] content "type")))
+  (let ((msg-type ([] content "type")))
     (cl-jupyter:logg 2 "    custom message msg-type -> ~s~%" msg-type)
     (cond
       ((string= msg-type "request_frame")
@@ -1037,7 +1037,7 @@
        (cl-jupyter:logg 2 "      handling request_loaded~%")
        (unless (loaded widget)
          (setf (loaded widget) nil))
-       (setf (loaded widget) (eq (fredo-utils:[] content "data") :true))
+       (setf (loaded widget) (eq ([] content "data") :true))
        (cl-jupyter:logg 2 "(loaded widget) -> ~a    ([] content \"data\") -> ~s~%" (loaded widget) ([] content "data")))
       ((string= msg-type "request_repr_dict")
        (setf (ngl-repr-dict widget) (dict-lookup "data" (ngl-msg widget))))
@@ -1045,7 +1045,7 @@
        (setf (ngl-full-stage-parameters widget) (dict-lookup "data" (ngl-msg widget))))
       ((string= msg-type "async_message")
        (cl-jupyter:logg 2 "%ngl-handle-msg - received async_message~%")
-       (when (string= (fredo-utils:[] content "data") "ok")
+       (when (string= ([] content "data") "ok")
          (cl-jupyter:logg 2 "    setting event~%")
          (pythread:event-set (event widget))))
       (t

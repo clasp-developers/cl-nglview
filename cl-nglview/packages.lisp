@@ -16,6 +16,7 @@
 (defpackage #:nglv
   (:use #:cl)
   (:shadow #:count #:structure)
+  (:import-from :fredokun-utilities #:[] #:[]-contains)
   (:export
    #:make-nglwidget
    #:nglwidget
