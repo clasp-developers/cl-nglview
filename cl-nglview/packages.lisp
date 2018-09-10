@@ -16,6 +16,7 @@
 (defpackage #:nglv
   (:use #:cl)
   (:shadow #:count #:structure)
+  (:import-from :fredokun-utilities #:[] #:[]-contains)
   (:export
    #:make-nglwidget
    #:nglwidget
@@ -23,6 +24,7 @@
    #:remote-call-thread-queue
    #:wait-until-finished
    #:show-aggregate
+   #:show-structure-file
    #:trajectory
    #:get-structure-name
    #:get-structure-string

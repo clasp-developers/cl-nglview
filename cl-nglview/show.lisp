@@ -8,7 +8,7 @@
 (defun show-pdbid (pdbid &rest kwargs &key &allow-other-keys)
   "Show PDB entry.
     Examples - (defparameter w (nglv:show_pdbid \"3pqr\"))
-               (cl-jupyter-widgets::disp w)???????"
+               (cl-ipywidgets::disp w)???????"
   (cl-jupyter:logg 2 "show-pdbid ~s~%" pdbid)
   (let ((structure (make-instance 'PdbIdStructure :pdbid pdbid)))
        (apply #'make-nglwidget :structure structure kwargs)))

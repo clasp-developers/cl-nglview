@@ -1,57 +1,57 @@
 (in-package :nglv)
 
-;;; Subclass cl-jupyter-widgets to add %ngl-name
+;;; Subclass cl-ipywidgets to add %ngl-name
 
-(defclass button (cl-jupyter-widgets:button)
+(defclass button (cl-ipywidgets:button)
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass text (cl-jupyter-widgets:text)
+(defclass text (cl-ipywidgets:text)
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass int-slider (cl-jupyter-widgets:int-slider) 
+(defclass int-slider (cl-ipywidgets:int-slider) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass dropdown (cl-jupyter-widgets:dropdown) 
+(defclass dropdown (cl-ipywidgets:dropdown) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass tab (cl-jupyter-widgets:tab) 
+(defclass tab (cl-ipywidgets:tab) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass checkbox (cl-jupyter-widgets::checkbox) 
+(defclass checkbox (cl-ipywidgets::checkbox) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass float-text (cl-jupyter-widgets::float-text) 
+(defclass float-text (cl-ipywidgets::float-text) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass int-text (cl-jupyter-widgets::int-text) 
+(defclass int-text (cl-ipywidgets::int-text) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass toggle-button (cl-jupyter-widgets:toggle-button) 
+(defclass toggle-button (cl-ipywidgets:toggle-button) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass color-picker (cl-jupyter-widgets:color-picker) 
+(defclass color-picker (cl-ipywidgets:color-picker) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
 
-(defclass box (cl-jupyter-widgets:box) 
+(defclass box (cl-ipywidgets:box) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass vbox (cl-jupyter-widgets:vbox) 
+(defclass vbox (cl-ipywidgets:vbox) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 
-(defclass hbox (cl-jupyter-widgets:hbox) 
+(defclass hbox (cl-ipywidgets:hbox) 
   ((%ngl-name :initform nil :initarg :%ngl-name :accessor %ngl-name))
   (:metaclass traitlets:traitlet-class))
 

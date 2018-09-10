@@ -5,7 +5,7 @@
 (defmacro @observe (slot observer)
   nil)
 
-(defparameter *frontend-version* "1.1.2") ;; must match to js/package.json and js/src/widget_ngl.js
+(defparameter *frontend-version* "1.1.5") ;; must match to js/package.json and js/src/widget_ngl.js
 
 (defparameter *excluded-callback-after-firing*
   (list "setUnSyncCamera" "setSelector" "setUnSyncFrame"
@@ -182,7 +182,7 @@
 ;;   (%init-gui :initarg :gui :accessor gui :initform nil) ;; WHY? does nglview does this
    (%theme :initarg :theme :accessor theme :initform "default")
    (%widget-image :initarg :widget-image :accessor widget-image
-                  :initform (make-instance 'cl-jupyter-widgets:image :width 900))
+                  :initform (make-instance 'cl-ipywidgets:image :width 900))
    (%image-array :initarg :image-array :accessor image-array :initform #())
    (%event :initarg :event :accessor event :initform (make-instance 'pythread:event))
    (%ngl-displayed-callbacks-before-loaded-reversed
@@ -271,15 +271,15 @@
 ;;;      (setf (control widget) (make-instance 'viewer-control :view widget))
       #+(or)(warn "What do we do about add_repr_method_shortcut")
       ;;; Handle messages - in Python they start a daemon - WHY????
-      (cljw:on-msg widget '%ngl-handle-msg)
+      (cl-ipykernel:on-msg widget '%ngl-handle-msg)
       #+(or)(progn
               (cl-jupyter:logg 2 "Starting handle-msg-thread from process ~s~%" (bordeaux-threads:current-thread))
               (setf (handle-msg-thread widget)
                     (mp:process-run-function
                      'handle-msg-thread
                      (lambda ()
-                       (cljw:on-msg widget '%ngl-handle-msg)
-                       (cl-jupyter:logg 2 "Calling cljw:on-msg widget with #'%ngl-handle-msg in process: ~s~%" (bordeaux-threads:current-thread))
+                       (cl-ipkernel:on-msg widget '%ngl-handle-msg)
+                       (cl-jupyter:logg 2 "Calling cl-ipykernel:on-msg widget with #'%ngl-handle-msg in process: ~s~%" (bordeaux-threads:current-thread))
                        (loop
                          ;; yield while respecting callbacks to ngl-handle-msg
                          (bordeaux-threads:thread-yield)
@@ -1012,7 +1012,7 @@
     (cl-jupyter:logg 2 "    custom message msg-type -> ~s~%" msg-type)
     (cond
       ((string= msg-type "request_frame")
-       (incf (frame widget) (step (player widget)))
+       (incf (frame widget) (%step (player widget)))
        (if (>= (frame widget) (count widget))
            (setf (frame widget) 0)
            (if (< (frame widget) 0)
@@ -1502,7 +1502,7 @@ kwargs=kwargs2)
          (remhash ,k ,tab)))))
 
 
-(defmethod cl-jupyter-widgets:widget-close ((widget nglwidget))
+(defmethod cl-ipywidgets:widget-close ((widget nglwidget))
   (call-next-method)
   ;; (bordeaux-threads:destroy-thread (remote-call-thread widget))
   (when (handle-msg-thread widget)

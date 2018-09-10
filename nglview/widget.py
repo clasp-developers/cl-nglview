@@ -6,7 +6,13 @@ import uuid
 import json
 import numpy as np
 from IPython.display import display
-from ipywidgets import Box, DOMWidget, widget_image
+from ipywidgets import Box, DOMWidget
+try:
+    # ipywidgets >= 7.4
+    from ipywidgets import Image
+except ImportError:
+    from ipywidgets.widget_image import Image
+
 import ipywidgets.embed
 from traitlets import (Unicode, Bool, Dict, List, Int, Integer, observe,
                        CaselessStrEnum)
@@ -28,7 +34,7 @@ from .config import BACKENDS
 from .remote_thread import RemoteCallThread
 
 __all__ = ['NGLWidget', 'ComponentViewer']
-__frontend_version__ = '1.1.2' # must match to js/package.json and js/src/widget_ngl.js
+__frontend_version__ = '1.1.5' # must match to js/package.json
 _EXCLUDED_CALLBACK_AFTER_FIRING = {
         'setUnSyncCamera', 'setSelector', 'setUnSyncFrame', 'setDelay',
         'autoView',
@@ -150,7 +156,7 @@ class NGLWidget(DOMWidget):
         self._gui = None
         self._init_gui = kwargs.pop('gui', False)
         self._theme = kwargs.pop('theme', 'default')
-        self._widget_image = widget_image.Image()
+        self._widget_image = Image()
         self._widget_image.width = 900.
         self._image_array = []
         # do not use _displayed_callbacks since there is another Widget._display_callbacks
