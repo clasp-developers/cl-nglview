@@ -1012,7 +1012,7 @@
     (cl-jupyter:logg 2 "    custom message msg-type -> ~s~%" msg-type)
     (cond
       ((string= msg-type "request_frame")
-       (incf (frame widget) (step (player widget)))
+       (incf (frame widget) (%step (player widget)))
        (if (>= (frame widget) (count widget))
            (setf (frame widget) 0)
            (if (< (frame widget) 0)
