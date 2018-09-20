@@ -291,7 +291,7 @@
       (cond
         ((typep structure 'Trajectory)
          (let ((name (nglv::get-structure-name structure)))
-           (add-trajectory widget structure :name name)))
+           (add-trajectory widget structure))); :name name)))
         ((consp structure)
          (warn "Handle list of structures"))
         (structure
