@@ -91,7 +91,7 @@ RETURN:     MESSAGE
           (bt:condition-notify (queue-not-empty queue)))))
   message)
 
-(defun dequeue (queue)
+(defun dequeue (queue &key (timeout nil timeoutp) (timeout-val nil timeout-val-p))
   "
 DO:         Atomically, dequeue the first message from the QUEUE.  If
             the queue is empty,  then wait on the not-empty condition
@@ -101,7 +101,9 @@ RETURN:     the dequeued MESSAGE.
 "
   (bt:with-lock-held ((queue-lock queue))
     (loop :until (queue-head queue)
-          :do (bt:condition-wait (queue-not-empty queue) (queue-lock queue)))
+          :do (bt:condition-wait (queue-not-empty queue) (queue-lock queue) :timeout timeout)
+          :if (and timeout (null (queue-head queue)))
+            :do (return-from dequeue timeout-val))
     (if (eq (queue-head queue) (queue-tail queue))
         (prog1 (car (queue-head queue))
           (setf (queue-head queue) nil

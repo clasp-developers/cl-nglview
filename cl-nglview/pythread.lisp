@@ -37,14 +37,19 @@
   "Keep pulling callbacks out of the queue and evaluating them"
   (cl-jupyter:logg 2 "Starting remote-call-thread-run~%")
   (loop
-    (let ((callback (clext.queue:dequeue *remote-call-thread-queue*))) ;; (nglv:remote-call-thread-queue widget())))
+    (cl-jupyter:logg 2 "About to dequeue from *remote-call-thread-queue*~%")
+    (cl-jupyter:logg 2 "Queue contents: ~s ~%" *remote-call-thread-queue*)
+    (let ((callback (clext.queue:dequeue *remote-call-thread-queue* :timeout 10 :timeout-val :timeout))) ;; (nglv:remote-call-thread-queue widget())))
       ;; messages are sent within the dynamic environment of a specific *parent-msg*,*shell* and *kernel*
       (cl-jupyter:logg 2 "remote-call-thread-run callback: ~s~%" callback)
       (cond
         ((eq callback :shutdown)
          (return-from remote-call-thread-run nil))
+        ((eq callback :timeout)
+         (cl-jupyter:logg 2 "remote-call-thread-run timeout~%"))
         ((eq callback :status)
-         (format t "I am still alive~%"))
+         (cl-jupyter:logg 2 "remote-call-thread-run is still alive~%")
+         (format t "remote-call-thread-run ism still alive~%"))
         ((eq callback :ping)
          (format t "PONG~%"))
         ((typep callback 'remote-call-callback)
@@ -100,12 +105,18 @@
 (cl-jupyter:logg 2 "done  pythread.lisp~%")
 
 
-(defparameter *remote-call-thread-queue* (clext.queue:make-queue 'remote-call-thread-queue))
+(defun kernel-start-callback ()
+  "We need to create a new queue and thread to manage the queue
+when the kernel starts up.   This is especially important for the fork-server."
+  (cl-jupyter:logg 2 "Setting up the *remote-call-thread-queue* and *remote-call-thread*~%")
+  (defparameter *remote-call-thread-queue* (clext.queue:make-queue 'remote-call-thread-queue))
+  (defparameter *remote-call-thread* (bordeaux-threads:make-thread 
+                                      (lambda () (remote-call-thread-run
+                                                  (list "loadFile" "replaceStructure")))
+                                      :name 'remote-call-thread)))
 
-(defparameter *remote-call-thread* (bordeaux-threads:make-thread 
-                                    (lambda () (remote-call-thread-run
-                                                (list "loadFile" "replaceStructure")))
-                                    :name 'remote-call-thread))
-
+(eval-when (:execute :load-toplevel)
+  (push #'kernel-start-callback cl-ipywidgets:*kernel-start-callbacks*))
+  
 
 
