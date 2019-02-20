@@ -863,7 +863,7 @@
 
 (defmethod clear-representations ((widget nglwidget) &key (component 0))
   (%remote-call widget
-                "clearRepresentations"
+                "removeAllRepresentations"
                 :target "compList"
                 :kwargs (list (cons "component_index" component)))
   (values))
