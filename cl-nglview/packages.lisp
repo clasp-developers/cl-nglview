@@ -39,6 +39,8 @@
    #:send-binary
    #:show-pdbid
    #:*backends*
+   #:clear-representations
+   #:add-representation
    )
   (:import-from :fredokun-utilities #:[] #:[]-contains))
 
