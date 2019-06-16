@@ -508,7 +508,7 @@
 				       :icon "fa-refresh"))
 	(button-center-selection (make-instance 'button
 						:description " Center"
-						:tooltip "center selected atoms" :
+						:tooltip "center selected atoms"
 						:icon "fa-bullseye"))
 	(button-hide (make-instance 'button
 				    :description " Hide"
