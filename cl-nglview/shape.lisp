@@ -31,3 +31,10 @@
 		:target "Widget"
 		:args name
 		:kwargs kwargs))
+
+
+(defun add-axes (widget)
+  (let ((x-arrow (vector "arrow" #(0 0 0) #(10 0 0) #(1 0 0) 1.0))
+        (y-arrow (vector "arrow" #(0 0 0) #(0 10 0) #(0 1 0) 1.0))
+        (z-arrow (vector "arrow" #(0 0 0) #(0 0 10) #(0 0 1) 1.0)))
+    (add-shape widget (vector x-arrow y-arrow z-arrow) :name "axes")))

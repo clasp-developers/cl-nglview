@@ -31,6 +31,7 @@
    #:ext
    #:trajectory
    #:structure
+   #:add-axes
    #:append-coordinates
    #:get-coordinates
    #:n-frames
