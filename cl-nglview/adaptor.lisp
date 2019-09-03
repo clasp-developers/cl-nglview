@@ -23,7 +23,8 @@
     (let ((pathname (pathname path)))
       (unless ext
 	(setf ext (pathname-type pathname))))
-    (setf fm (make-instance 'file-manager :src path))))
+    (setf fm (make-instance 'file-manager :src path)))
+  file-structure)
 
 ;;(defgeneric get-structure-string (Structure)
 ;;  (:documentation "I think this works"))

@@ -209,6 +209,7 @@
   ;; the following doesn't appear to be used anywhere correct
   ;; https://github.com/drmeister/spy-ipykernel/blob/master/nglview/player.py#L80
   ;; self._widget_names = [w for w in dir(self) if w.startswith('wiget_')]
+  player
   )
 
 #|
