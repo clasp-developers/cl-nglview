@@ -45,13 +45,11 @@
             (:constructor make-queue
                 (name
                  &aux
-                   (head nil)
-                   (tail nil)
                    (lock (make-lock (format nil "~A-LOCK" name)))
                    (not-empty (make-condition-variable :name (format nil "~A-NOT-EMPTY" name)))))
             (:copier nil)
             (:predicate queuep))
-  name head tail lock not-empty)
+  name (head nil) (tail nil) lock not-empty)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (setf (documentation 'make-queue 'function) "
