@@ -45,6 +45,8 @@
             (:constructor make-queue
                 (name
                  &aux
+                   (head nil)
+                   (tail nil)
                    (lock (make-lock (format nil "~A-LOCK" name)))
                    (not-empty (make-condition-variable :name (format nil "~A-NOT-EMPTY" name)))))
             (:copier nil)
