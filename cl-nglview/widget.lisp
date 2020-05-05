@@ -1228,10 +1228,10 @@ kwargs=kwargs2)
         (component-index (assoc "component_index" kwargs :test #'string=))
         (repr-index (assoc "repr_index" kwargs :test #'string=)))
     (when component-index
-      (setf (jsown:val msg "component_index") component-index)
+      (setf (jsown:val msg "component_index") (cdr component-index))
       (setf kwargs (remove component-index kwargs)))
     (when repr-index
-      (setf (jsown:val msg "repr_index") repr-index)
+      (setf (jsown:val msg "repr_index") (cdr repr-index))
       (setf kwargs (remove repr-index kwargs)))
     (setf (jsown:val msg "kwargs") kwargs)
     (let ((callback-maker (lambda (description)

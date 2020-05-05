@@ -116,7 +116,7 @@
    (ext :accessor ext :initform nil) ;HELP!!! Please help me
    (params :accessor params :type list :initform nil)
    (trajectory :accessor trajectory :initform nil)
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self SimpletrajTrajectory) &key)
   (setf (gethash "simpletraj" *BACKENDS*) 'SimpletrajTrajectory)
@@ -145,7 +145,7 @@
 	       :initform nil)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self MDTrajTrajectory) &key)
   (setf (gethash "mdtraj" *BACKENDS*) 'MDTrajTrajectory)
@@ -173,7 +173,7 @@
 	       :initform nil)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self PyTrajTrajectory) &key)
   (setf (gethash "pytraj" *BACKENDS*) 'PyTrajTrajectory)
@@ -202,7 +202,7 @@
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
    (xyz :accessor xyz :initform nil)
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))
+   (id :accessor id :initform (jupyter:make-uuid))
    (only-save-1st-model :accessor only-save-1st-model :type bool :initform :true)))
 
 (defmethod initialize-instance :after ((self ParmEdTrajectory) &key)
@@ -253,7 +253,7 @@ class ParmEdTrajectory(Trajectory, Structure):
   ((atomgroup :initarg :atomgroup :accessor atomgroup)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self MDAnalysisTrajectory) &key)
   (setf (gethash "MDAnalysis" *BACKENDS*) 'MDAnalysisTrajectory)
@@ -295,7 +295,7 @@ class ParmEdTrajectory(Trajectory, Structure):
   ((mol :initarg :mol :accessor mol)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self HTMDTrajectory) &key)
   (setf (gethash "htmd" *BACKENDS*) 'HTMDTrajectory)

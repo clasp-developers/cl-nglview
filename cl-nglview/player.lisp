@@ -16,175 +16,120 @@
    (sync-frame :initarg :sync-frame :accessor sync-frame
 	       :type boolean
 	       :initform nil ;Original default is true but init makes it false
-	       :trait :bool
-	       :observers (update-sync-frame))
+	       :trait :bool)
    (interpolate :initarg :interpolate :accessor interpolate
 		:type bool
 		:initform :false
-		:metadata (:sync t
-				 :json-name "interpolate"))
+		:trait :bool)
    (delay :initarg :delay :accessor delay
 	  :type float
 	  :initform 100.0 ;Original default is 0.0 but init makes it 100
-	  :observers (%update-delay)
-	  :metadata (:sync t
-			   :json-name "delay"))
-   (%parameters :initarg :parameters :accessor trajectory-player-parameters
-	       :type cljw:dict
-	       :initform nil
-	       :observers (update-parameters)
-	       :metadata (:sync t
-				:json-name "parameters"))
+	  :trait :float)
+   (parameters :initarg :parameters :accessor trajectory-player-parameters
+	       :trait :dict
+	       :initform nil)
    (iparams :initarg :iparams :accessor iparams
-	    :type cljw:dict
-	    :initform nil
-	    :metadata (:sync t
-			     :json-name "iparams"))
+	    :trait :dict
+	    :initform nil)
    (%interpolation-t :initarg :%interpolation-t :accessor %interpolation-t
 		     :type float
 		     :initform 0.5 ;Original default is nil but init makes it 0.5
-		     :observers (%interpolation-t-changed)
-		     :metadata (:sync t
-				      :json-name "_interpolation_t"))
+		     :trait :float)
    (%iterpolation-type :initarg :%iterpolation-type :accessor %iterpolation-type
-			:type unicode
-			:initform (cljw:unicode "linear") ;Original default is "" but init makes it "linear"
-			:metadata (:sync t
-					 :json-name "_iterpolation_type"
-					 :caseless-str-enum '("linear" "spline")
-					 :help "either linear or spline"))
+			:trait :unicode ; TODO: Add validator for enum ("linear" "spline")
+			:initform "linear") ;Original default is "" but init makes it "linear"
    (spin :initarg :spin :accessor spin
-	 :type bool
-	 :initform :false
-	 :observers (on-spin-changed)
-	 :metadata (:sync t
-			  :json-name "spin"))
+	 :trait :bool
+	 :initform nil)
    (%spin-x :initarg :%spin-x :accessor %spin-x
 	    :type integer
-	    :initform 1
-	    :observers (on-spin-x-changed)
-	    :metadata (:sync t
-			     :json-name "_spin_x"))
+	    :trait :int
+	    :initform 1)
    (%spin-y :initarg :%spin-y :accessor %spin-y
 	    :type integer
-	    :initform 0
-	    :observers (on-spin-y-changed)
-	    :metadata (:sync t
-			     :json-name "_spin_y"))
+	    :trait :int
+	    :initform 0)
    (%spin-z :initarg :%spin-z :accessor %spin-z
 	    :type integer
-	    :initform 0
-	    :observers (on-spin-z-changed)
-	    :metadata (:sync t
-			     :json-name "_spin_z"))
+	    :trait :int
+	    :initform 0)
    (%spin-speed :initarg :%spin-speed :accessor %spin-speed
 		:type float
 		:initform 0.005
-		:metadata (:sync t
-				 :json-name "_spin_speed"))
+		:trait :float)
    (camera :initarg :camera :accessor trajectory-player-camera
-	   :type unicode
-	   :initform (cljw:unicode "perspective")
-	   :observers (on-camera-changed)
-	   :metadata (:sync t
-			    :json-name "camera"
-			    :caseless-str-enum '("perspective" "orthographic")
-			    :help "Options: perspective or orthographic"))
+	   :trait :unicode ; TODO: Add validator for enum ("perspective" "orthographic")
+	   :initform "perspective")
    (%render-params :initarg :%render-params :accessor %render-params
-		   :type cljw:dict
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "_render_params"))
+		   :trait :dict
+		   :initform nil)
    (%real-time-update :initarg :%real-time-update :accessor %real-time-update
-		      :type bool
-		      :initform :false
-		      :metadata (:sync t
-				       :json-name "_real_time_update"))
+		      :trait :bool
+		      :initform nil)
    ;;gap in python code
    (widget-tab :initarg :widget-tab :accessor widget-tab
 	       :initform nil
-	       :metadata (:sync t
-				:json-name "widget_tab"))
+	       :trait :widget)
    (widget-repr :initarg :widget-repr :accessor widget-repr
 		:initform nil
-		:metadata (:sync t
-				 :json-name "widget_repr"))
+		:trait :widget)
    (widget-repr-parameters :initarg :widget-repr-parameters :accessor widget-repr-parameters
 			   :initform nil
-			   :metadata (:sync t
-					   :json-name "widget_repr_parameters"))
+			   :trait :dict)
    (widget-quick-repr :initarg :widget-quick-repr :accessor widget-quick-repr
 		      :initform nil
-		      :metadata (:sync t
-				       :json-name "widget_quick_repr"))
+		      :trait :widget)
    (widget-general :initarg :widget-general :accessor widget-general
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_general"))
+		   :trait :widget)
    (widget-picked :initarg :widget-picked :accessor widget-picked
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_picked"))
+		   :trait :widget)
    (widget-preference :initarg :widget-preference :accessor widget-preference
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_preference"))
+		   :trait :widget)
    (widget-extra :initarg :widget-extra :accessor widget-extra
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_extra"))
+		   :trait :widget)
    (widget-theme :initarg :widget-theme :accessor widget-theme
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_theme"))
+		   :trait :widget)
    (widget-help :initarg :widget-help :accessor widget-help
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_help"))
+		   :trait :widget)
    (widget-export-image :initarg :widget-export-image :accessor widget-export-image
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_export_image"))
+		   :trait :widget)
    (widget-component-slider :initarg :widget-component-slider :accessor widget-component-slider
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_component_slider"))
+		   :trait :widget)
    (widget-repr-slider :initarg :widget-repr-slider :accessor widget-repr-slider
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_slider"))
+		   :trait :widget)
    (widget-repr-choices :initarg :widget-repr-choices :accessor widget-choices
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_choices"))
+		   :trait :widget)
    (widget-repr-control-buttons :initarg :widget-repr-control-buttons :accessor widget-repr-control-buttons
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_control_buttons"))
+		   :trait :widget)
    (widget-repr-add :initarg :widget-repr-add :accessor widget-repr-add
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_add"))
+		   :trait :widget)
    (widget-accordion-repr-parameters :initarg :widget-accordion-repr-parameters :accessor widget-accordion-repr-parameters
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_accordion_repr_parameters"))
+		   :trait :dict)
    (widget-repr-parameters-dialog :initarg :widget-repr-parameters-dialog :accessor widget-repr-parameters-dialog
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_parameters_dialog"))
+		   :trait :widget)
    (widget-repr-name :initarg :widget-repr-name :accessor widget-repr-name
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_name"))
+		   :trait :widget)
    (widget-component-dropdown :initarg :widget-component-dropdown :accessor widget-component-dropdown
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_component_dropdown"))
+		   :trait :widget)
    (widget-drag :initarg :widget-drag :accessor widget-drag
 		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_drag"))
+		   :trait :widget)
    ;;;include the other parameters found in the __init__ function
   (%view :initarg :%view :accessor %view
 	:initform nil)
@@ -238,11 +183,10 @@
 (defmethod smooth ((self trajectory-player))
   (setf (interpolate self) t))
 
-(@observe camera on-camera-changed)
-(defmethod on-camera-changed (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :camera)) old new)
   (let ((camera-type new))
     (when (slot-boundp object 'view)
-      (%remote-call (%view object) "setParameters" :target "Stage" :kwargs (cljw:dict (cons "cameraType" camera-type))))))
+      (%remote-call (%view object) "setParameters" :target "Stage" :kwargs (list (cons "cameraType" camera-type))))))
 
 (defmethod frame ((self trajectory-player))
   (frame (%view self)))
@@ -250,20 +194,18 @@
 (defmethod (setf frame) (value (self trajectory-player))
   (setf (frame (view self)) value))
 
-(@observe sync-frame update-sync-frame)
-(defmethod update-sync-frame (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :sync-frame)) old new)
+  (declare (ignore type name))
   (when (slot-boundp object 'view)
     (if new
         (%set-sync-frame (view object))
         (%set-unsync-frame (view object)))))
 
-(@observe delay %update-delay)
-(defmethod %update-delay (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :delay)) old new)
   (when (slot-boundp object 'view)
     (%set-delay (view object) new)))
 
-(@observe parameters update-parameters)
-(defmethod update-parameters (object name params old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :parameters)) old new)
   (when (slot-boundp object 'sync-frame)
     (setf (sync-frame object) (get params "sync_frame" (sync-frame object))))
   (when (slot-boundp object 'delay)
@@ -271,40 +213,38 @@
   (when (slot-boundp object '%step)
     (setf (%step object) (get params "step" (%step object)))))
 
-(@observe %interpolation-t %interpolation-t-changed)
-(defmethod %interpolation-t-changed (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%interpolation-t)) old new)
   (let ((entry ([] (iparams object) "t")))
     (if entry
         (setf (cdr entry) new)
         (setf (iparams object) (cons "t" new)))))
 
-(@observe spin on-spin-changed)
-(defmethod on-spin-changed (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :spin)) old new)
   (when (slot-boundp object 'view)
     (if (javascript-true-p (spin object))
         (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))
         (%set-spin (view object) nil nil))))
 
-(@observe %spin-x on-spin-x-changed)
-(defmethod on-spin-x-changed (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-x)) old new)
+  (declare (ignore type name))
   (when (slot-boundp object 'view)
     (if (javascript-true-p (spin object))
         (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
 
-(@observe %spin-y on-spin-y-changed)
-(defmethod on-spin-y-changed (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-y)) old new)
+  (declare (ignore type name))
   (when (slot-boundp object 'view)
     (if (javascript-true-p (spin object))
         (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
 
-(@observe %spin-z on-spin-z-changed)
-(defmethod on-spin-z-changed ((self trajectory-player) name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-z)) old new)
+  (declare (ignore type name))
   (when (slot-boundp self 'view)
     (if (javascript-true-p (spin self))
         (%set-spin (view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self)))))
 
-(@observe %spin-speed on-spin-speed-changed)
-(defmethod on-spin-speed-changed ((self trajectory-player) name new old)
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-speed)) old new)
+  (declare (ignore type name))
   (if (javascript-true-p (spin self))
       (%set-spin (view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
 
@@ -326,14 +266,15 @@
   (%display self))
 
 (defmethod %make-hide-tab-with-place-proxy ((self trajectory-player))
-  (apply #'make-instance 'cljw::Box (%place-proxy (view self))))
+  (apply #'make-instance 'jupyter-widgets:box (%place-proxy (view self))))
 
 (defmethod %make-button-center ((self trajectory-player))
-  (let ((button (make-instance 'cljw::button :description " Center" :icon "fa-bullseye")))
-    (flet ((click (button)
-	     (center (view self))))
-      (cljw::on-click button #'click)
-      button)))
+  (make-instance 'jupyter-widgets:button
+                 :description " Center"
+                 :icon "fa-bullseye"
+                 :on-click (lambda (button)
+                             (declare (ignore button))
+                             (center (view self)))))
   ;;I need to figure out how to do @button.on_click to register this as the on_click method
  #|
     def _make_button_center(self):
@@ -381,11 +322,11 @@
  |#
 
 (defmethod %make-button-clean-error-output ((self trajectory-player))
-  (let ((button (make-instance 'button :description "Clear Error")))
-    (flet ((click (_)
-             (declare (ignore _))
-	     (clean-error-output js-utils)))
-      (cljw::on-click button #'click))))
+  (make-instance 'jupyter-widgets:button
+                 :description "Clear Error"
+                 :on-click (lambda (button)
+                             (declare (ignore button))
+                               (clean-error-output js-utils))))
 
 (defmethod %make-widget-preference ((self trajectory-player) &optional (width "100%"))
   (flet ((make-func ()
@@ -440,33 +381,31 @@
 	     widget-sliders)))
     (when (not (widget-preference self))
       (let* ((widget-sliders (make-widget-box))
-	     (reset-button (make-instance 'button :description "Reset")))
-	(setf (children widget-sliders) (vector reset-button (children widget-sliders)))
-	(flet ((click (reset-button)
-		 (setf (parameters (view self)) (original-stage-parameters (view self))
-		       (full-stage-parameters (view self)) (original-stage-parameters (view self))
-		       (children widget-sliders) (list reset-button (children (make-widget-box))))))
-	  (cljw::on-click reset-button #'click))
-      (setf (widget-preference self) (%relayout-master (widget-sliders :width width)))
-    (widget-prefence self)))))
-
-
-	
+             (reset-button (make-instance 'button
+                                          :description "Reset"
+                                          :on-click (lambda (reset-button)
+                                                      (setf (parameters (view self)) (original-stage-parameters (view self))
+                                                            (full-stage-parameters (view self)) (original-stage-parameters (view self))
+                                                            (children widget-sliders) (list reset-button (children (make-widget-box))))))))
+        (setf (children widget-sliders) (vector reset-button (children widget-sliders))
+              (widget-preference self) (%relayout-master (widget-sliders :width width)))
+        (widget-prefence self)))))
 
 (defmethod %show-download-image ((self trajectory-player))
-  (let ((button (make-instance 'button :description " Screenshot" :icon "fa-camera")))
-    (flet ((click (button)
-	     (download-image (view self))))
-      (cljw::on-click button #'click))
-      button))
+  (make-instance 'button
+                 :description " Screenshot"
+                 :icon "fa-camera"
+                 :on-click (lambda (button)
+                             (declare (ignore button))
+                             (download-image (view self)))))
 
 (defmethod %make-button-url ((self trajectory-player) url description)
   (error "We're not so sure about this whole Javascript interoperation deal")
-  (let ((button (make-instance 'button :description description)))
-    (flet ((on-click (button)
-             (declare (ignore button))
-	     (display (Javascript (format (open-url-template js-utils) :url url)))))
-      button)))
+  (make-instance 'button
+                 :description description
+                 :on-click (lambda (button)
+                             (declare (ignore button))
+                             (display (Javascript (format (open-url-template js-utils) :url url))))))
 ;;;HELP ME WITH THIS ONE please. I don't understand the javascript part
 
 (defmethod %show-website ((self trajectory-player) &optional (ngl-base-url *NGL-BASE-URL*))
@@ -483,11 +422,12 @@
  |#
 
 (defmethod %make-button-qtconsole ((self trajectory-player))
-  (let ((button (make-instance 'button :description "qtconsole" :tooltip "pop up qtconsole")))
-    (flet ((click (button)
-	     (funcall #'launch-qtconsole js-utils)))
-      (cljw::on-click button #'click))
-      button))
+  (make-instance 'button
+                 :description "qtconsole"
+                 :tooltip "pop up qtconsole"
+                 :on-click (lambda (button)
+                             (declare (ignore button)
+                                      (funcall #'launch-qtconsole js-utils)))))
 
 (defmethod %make-text-picked ((self trajectory-player))
   (let ((ta (Textarea :value (funcall dumps json (picked (view self))) :description "Picked atom")))
@@ -501,54 +441,62 @@
 
 
 (defmethod %make-button-repr-control ((self trajectory-player) component-slider repr-slider repr-selection)
-  (let ((button-refresh (make-instance 'button
-				       :description " Refresh"
-				       :tooltip "Get representation info"
-				       :icon "fa-refresh"))
-	(button-center-selection (make-instance 'button
-						:description " Center"
-						:tooltip "center selected atoms"
-						:icon "fa-bullseye"))
-	(button-hide (make-instance 'button
-				    :description " Hide"
-				    :tooltip "Hide/Show current representation"
-				    :icon "fa-eye-slash"))
-	(button-remove (make-instance 'button
-				      :description " Remove"
-				      :tooltip "Remove current representation"
-				      :icon "fa-trash"))
-	(button-repr-parameter-dialog (make-instance 'button
-						     :description " Dialog"
-						     :tooltip "Pop up representation parameters control dialog"))
-	(bbox nil))
-    (setf (%ngl-name button-center-selection) "button-center-selection")
-    (flet ((click-refresh (button)
-	     (%refresh self component-slider repr-slider))
-	   (click-center (center-selection)
-	     (center (%view self) :selection (value repr-selection)
-		     :component (value component-slider)))
-	   (click-hide (button-hide)
-	     (let ((component (value component-slider))
-		   (repr-index (value repr-slider))
-		   (hide nil))
-	       (if (string= (description button-hide) "Hide")
-		   (setf hide t
-			 (description button-hide) "Show")
-		   (setf hide nil
-			 (description button-hide) "Hide"))
-	       (%remote-call (%view self) "setVisibilityForRepr" :target "Widget"
-			     :args (list component repr-index (not hide)))))
-	   (click-remove (button-remove)
-	     (%remove-representation (%view self) :component (value component-slider)
-				     :repr-index (value repr-slider))
-	     (%request-repr-parameters (%view self) :component (value component-slider)
-				       :repr-index (value repr-slider))))
-      (cljw::on-click button-refresh #'click-refresh)
-      (cljw::on-click button-center-selection #'click-center)
-      (cljw::on-click button-hide #'click-hide)
-      (cljw::on-click button-remove #'click-remove)
-      (setf bbox (%make-autofit (make-instance 'cljw::hbox :children (vector button-refresh button-center-selection button-hide button-remove))))
-      bbox)))   
+  (%make-autofit
+    (make-instance 'jupyter-widgets:h-box
+                   :children (list
+                               ; refresh button
+                               (make-instance 'button
+                                              :description " Refresh"
+                                              :tooltip "Get representation info"
+                                              :icon "fa-refresh"
+                                              :on-click (lambda (button)
+                                                          (declare (ignore button))
+                                                          (%refresh self component-slider repr-slider)))
+                               ; Center button
+                               (make-instance 'button
+                                              :description " Center"
+                                              :tooltip "center selected atoms"
+                                              :icon "fa-bullseye"
+                                              :%ngl-name "button-center-selection"
+                                              :on-click (lambda (button)
+                                                          (declare (ignore button))
+                                                          (center (%view self)
+                                                                  :selection (value repr-selection)
+                                                                  :component (value component-slider))))
+                               ; Hide/Show button
+                               (make-instance 'button
+                                              :description " Hide"
+                                              :tooltip "Hide/Show current representation"
+                                              :icon "fa-eye-slash"
+                                              :on-click (lambda (button-hide)
+                                                          (let ((component (value component-slider))
+                                                                (repr-index (value repr-slider))
+                                                                (hide nil))
+                                                            (if (string= (description button-hide) "Hide")
+                                                              (setf hide t
+                                                                    (description button-hide) "Show")
+                                                              (setf hide nil
+                                                                    (description button-hide) "Hide"))
+                                                            (%remote-call (%view self) "setVisibilityForRepr"
+                                                                          :target "Widget"
+                                                                          :args (list component repr-index (not hide))))))
+                               ; Remove button
+                               (make-instance 'button
+                                              :description " Remove"
+                                              :tooltip "Remove current representation"
+                                              :icon "fa-trash"
+                                              :on-click (lambda (button)
+                                                          (declare (ignore button))
+                                                          (%remove-representation (%view self)
+                                                                                  :component (value component-slider)
+                                                                                  :repr-index (value repr-slider))
+                                                          (%request-repr-parameters (%view self)
+                                                                                    :component (value component-slider)
+                                                                                    :repr-index (value repr-slider))))
+                               ; Representation Parameters button
+                               (make-instance 'button
+                                              :description " Dialog"
+                                              :tooltip "Pop up representation parameters control dialog")))))
 
 (defmethod %make-widget-repr ((self trajectory-player))
   (setf (widget-repr-name self) (make-instance 'text :value "" :description "representation")
@@ -725,18 +673,16 @@
 	  (max-width (layout step-text)) *DEFAULT-TEXT-WIDTH*
 	  (max-width (layout filename-text)) *DEFAULT-TEXT-WIDTH*
 	  (max-width (layout delay-text)) *DEFAULT-TEXT-WIDTH*)
+	  ; TODO: implement on-click-images in player.lisp!
     (let ((button-movie-images (make-instance 'button
 					      :description "Export Images")))
-      (flet ((download-image (filename)
-	       (download-image (%view self)
-			       :factor (value slider-factor)
-			       :antialias (value checkbox-antialias)
-			       :trim (value checkbox-trim)
-			       :transparent (value checkbox-transparent)
-			       :filename filename))
-	     (click-images (button-movie-images)
-	       (error "Help implement on-click-images in player.lisp!")))
-	(cljw::on-click button-movie-images #'click-images)
+       (flet ((download-image (filename)
+	        (download-image (%view self)
+	 		       :factor (value slider-factor)
+	 		       :antialias (value checkbox-antialias)
+	 		       :trim (value checkbox-trim)
+	 		       :transparent (value checkbox-transparent)
+	 		       :filename filename)))
 	(let* ((vbox (make-instance 'vbox
 				   :children (vector button-movie-images
 						     start-text
@@ -1012,7 +958,8 @@
 	     (let ((command (value widget-text-command)))
 	       (execute js-utils command)
 	       (setf (value widget-text-command) ""))))
-      (cljw::on-submit widget-text-command #'submit-command)
+	    ; FIXME: on_submit is deprecated. use continuous_update = false
+      ; (cljw::on-submit widget-text-command #'submit-command)
       widget-text-command)))
 
 
