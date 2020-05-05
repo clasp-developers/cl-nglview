@@ -1246,11 +1246,11 @@ kwargs=kwargs2)
   (let (msg)
     (let ((component-index (assoc "component_index" kwargs :test #'string=)))
       (when component-index
-        (push component-index msg)
+        (push (cons "component_index" component-index) msg)
         (setf kwargs (remove component-index kwargs))))
     (let ((repr-index (assoc "repr_index" kwargs :test #'string=)))
       (when repr-index
-        (push repr-index msg)
+        (push (cons "repr_index" repr-index) msg)
         (setf kwargs (remove repr-index kwargs))))
     (push (cons "target" target) msg)
     (push (cons "type" "call_method") msg)
