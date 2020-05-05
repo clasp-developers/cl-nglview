@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(cl-jupyter:logg 2 "adaptor.lisp~%")
+(jupyter:inform :info nil "adaptor.lisp~%")
 ;;;Register backend is something python does but we don't need
 #|
 (defclass register-backend ()
@@ -72,15 +72,15 @@
 
 (defmethod get-structure-string ((self PdbIdStructure))
   (let ((url (concatenate 'string "http://files.rcsb.org/view/" (pdbid self) ".cif")))
-    (cl-jupyter:logg 2 "About to get-structure-string from ~s~%" url)
+    (jupyter:inform :info nil "About to get-structure-string from ~s~%" url)
     (destructuring-bind (response header stream)
 	(trivial-http:http-get url)
       (let ((contents (with-output-to-string (sout)
 			(trivial-http::copy-stream stream sout))))
-	(cl-jupyter:logg 2 "Read url: ~s~%" url)
-	(cl-jupyter:logg 2 "     response: ~a~%" response)
-	(cl-jupyter:logg 2 "       header: ~s~%" header)
-	(cl-jupyter:logg 2 "      contents are not show - may be too long~%")
+	(jupyter:inform :info nil "Read url: ~s~%" url)
+	(jupyter:inform :info nil "     response: ~a~%" response)
+	(jupyter:inform :info nil "       header: ~s~%" header)
+	(jupyter:inform :info nil "      contents are not show - may be too long~%")
 	(close stream)
 	contents))))
 

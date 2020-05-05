@@ -8,18 +8,16 @@
     t)
   nil)
 
-(defclass trajectory-player (cljw::domwidget)
+(defclass trajectory-player (jupyter-widgets:dom-widget)
   ((%step :initarg :%step :accessor %step
 	 :type integer
-	 :initform 1 ;Original default is 0 but init makes it 1
-	 :metadata (:sync t
-			  :json-name "step"))
+	 :trait :int
+	 :initform 1) ;Original default is 0 but init makes it 1
    (sync-frame :initarg :sync-frame :accessor sync-frame
 	       :type boolean
 	       :initform nil ;Original default is true but init makes it false
-	       :observers (update-sync-frame)
-	       :metadata (:sync t
-				:json-name "sync_frame"))
+	       :trait :bool
+	       :observers (update-sync-frame))
    (interpolate :initarg :interpolate :accessor interpolate
 		:type bool
 		:initform :false
@@ -196,7 +194,7 @@
   (%widget-names :initarg :widget-names :accessor widget-names
 		 :type list
 		 :initform ()))
-  (:metaclass traitlets:traitlet-class))
+  (:metaclass jupyter-widgets:trait-metaclass))
    
 (defmethod initialize-instance :after ((player trajectory-player) &key)
   (setf (iparams player) (list (cons "t" (%interpolation-t player))
@@ -784,7 +782,7 @@
 	(repr-button (make-instance 'button
 				    :description "Add"
 				    :tooltip "Add representation. You can also hit Enter in selection box.")))
-    (setf (layout repr-button) (make-instance 'cl-ipywidgets::layout
+    (setf (layout repr-button) (make-instance 'jupyter-widgets:layout
 					      :width "auto"
 					      :flex "1 1 auto")
 	  (width (layout dropdown-repr-name)) *DEFAULT-TEXT-WIDTH*

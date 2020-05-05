@@ -1,4 +1,4 @@
-(cl-jupyter:logg 2 "widget-log parameters.lisp~%")
+(jupyter:inform :info nil "widget-log parameters.lisp~%")
 (defparameter *REPRESENTATION-NAME-PAIRS* '(("axes" . "axes")
 						 ("point" . "point")
 						 ("line" . "line")

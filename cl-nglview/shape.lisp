@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(cl-jupyter:logg 2 "in shape.lisp~%")
+(jupyter:inform :info nil "in shape.lisp~%")
 
 (defclass shape ()
   ((view :initarg :view :accessor view :initform nil)

@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(cl-jupyter:logg 2 "base_adaptor.lisp~%")
+(jupyter:inform :info nil "base_adaptor.lisp~%")
 
 (defclass Structure ()
   ((ext :accessor ext :initform "pdb")

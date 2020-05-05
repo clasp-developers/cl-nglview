@@ -1,12 +1,12 @@
 
 (asdf:defsystem #:cl-nglview
-  :description "The ngl widget for cl-jupyter with widgets"
+  :description "The ngl widget for common-lisp-jupyter"
   :version "0.1"
   :author "Kevin Esslinger, Alex Rose, Christian Schafmeister"
   :license "LGPL2. See LICENSE."
-  :depends-on (:cl-jupyter
-               :cl-ipywidgets
+  :depends-on (:common-lisp-jupyter
                :bordeaux-threads
+               :jsown
                :trivial-http)
   :serial t
   :components (

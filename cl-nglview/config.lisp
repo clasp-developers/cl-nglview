@@ -1,5 +1,5 @@
 (in-package :nglv)
 
 (defparameter *BACKENDS* (make-hash-table))
-(cl-jupyter:logg 2 "widget-log config.lisp~%")
+(jupyter:inform :info nil "widget-log config.lisp~%")
 

@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(cl-jupyter:logg 2 "stage.lisp~%")
+(jupyter:inform :info nil "stage.lisp~%")
 
 (defclass stage ()
   ((%view :initarg :view
@@ -13,4 +13,4 @@
 
 
   
-(cl-jupyter:logg 2 "end of stage.lisp~%")
+(jupyter:inform :info nil "end of stage.lisp~%")

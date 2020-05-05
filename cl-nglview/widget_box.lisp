@@ -1,22 +1,21 @@
 (in-package :nglv)
 
-(defclass BoxNGL (cljw::box)
+(defclass BoxNGL (jupyter-widgets:box)
   ((%gui-style :initarg :%gui-style :accessor %gui-style
-	       :type unicode
-	       :initform (unicode "row")
+	       :trait :unicode
+	       :initform "row"
 	       :observers (%update-gui-style)
-	       :metadata (:sync t
-				:json-name "_gui_style"
-				:help "Options: row or column"))
+				 :documentation "Options: row or column")
    (%is-beautified :initarg :%is-beautified :accessor %is-beautified
 		   :type bool
 		   :initform :false))
-  (:metaclass traitlets:traitlet-class))
+  (:metaclass jupyter-widgets:trait-metaclass))
 
 (defmethod box.--init-- ((self BoxNGL) #|uh oh|# &key)
   (setf (layout self) (make-form-item-layout)))
 
-(defmethod %update-gui-style (object name new old)
+(defmethod jupyter-widgets:on-trait-change ((object BoxNGL) type (name (eql :%gui-style)) old new)
+  (declare (ignore type name old))
   (let ((what new))
     (setf (flex-flow (layout object)) (lower what))))
 
@@ -49,5 +48,5 @@
   (:default-initargs
    :view-name (unicode "NGLBox")
    :view-module (unicode "nglview"))
-  (:metaclass traitlets:traitlet-class))
+  (:metaclass jupyter-widgets:trait-metaclass))
            

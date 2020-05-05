@@ -1,4 +1,4 @@
-(cl-jupyter:logg 2 "nglview  Loading packages.lisp~%")
+(jupyter:inform :info nil "nglview  Loading packages.lisp~%")
 
 (defpackage "CLEXT.QUEUE"
   (:use "COMMON-LISP"
@@ -16,7 +16,6 @@
 (defpackage #:nglv
   (:use #:cl)
   (:shadow #:count #:structure)
-  (:import-from :fredokun-utilities #:[] #:[]-contains)
   (:export
    #:make-nglwidget
    #:nglwidget
@@ -42,8 +41,7 @@
    #:*backends*
    #:clear-representations
    #:add-representation
-   )
-  (:import-from :fredokun-utilities #:[] #:[]-contains))
+   ))
 
 (defpackage #:pythread
   (:use #:cl)
