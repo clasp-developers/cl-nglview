@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(jupyter:inform :info nil "nglview  Loading utils.lisp~%")
+(jupyter:inform :info nil "nglview  Loading utils.lisp")
 
 
 

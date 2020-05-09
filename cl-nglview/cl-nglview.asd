@@ -7,6 +7,7 @@
   :depends-on (:common-lisp-jupyter
                :bordeaux-threads
                :jsown
+               :trivial-garbage
                :trivial-http)
   :serial t
   :components (

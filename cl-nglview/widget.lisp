@@ -1,11 +1,8 @@
 (in-package :nglv)
 
-(jupyter:inform :info nil "Loading widget.lisp~%")
+(jupyter:inform :info nil "Loading widget.lisp")
 
-(defmacro @observe (slot observer)
-  nil)
-
-(defparameter *frontend-version* "1.1.5") ;; must match to js/package.json and js/src/widget_ngl.js
+(defparameter *frontend-version* "1.2.0") ;; must match to js/package.json and js/src/widget_ngl.js
 
 (defparameter *excluded-callback-after-firing*
   (list "setUnSyncCamera" "setSelector" "setUnSyncFrame"
@@ -137,11 +134,11 @@
    (%hold-image :initarg :hold-image
                 :accessor hold-image
                 :type boolean
-                :initform :false)
+                :initform nil)
    (%ngl-serialize :initarg :ngl-serialize
                    :accessor ngl-serialize
                    :type boolean
-                   :initform :false
+                   :initform nil
                    :trait :bool)
    (%ngl-msg-archive :initarg :ngl-msg-archive
                      :accessor ngl-msg-archive
@@ -211,7 +208,7 @@
    ||#
    (%trajlist :initform nil
               :accessor trajlist)
-   (%player :accessor player)
+   (%player :accessor player :initform nil)
    (%init-representations :initarg :init-representations
                      :accessor init-representations
                      :initform nil)
@@ -227,6 +224,11 @@
 
 (jupyter-widgets:register-widget nglwidget)
 
+(defmethod initialize-instance :before ((instance nglwidget) &rest initargs)
+  (declare (ignore initargs))
+  (unless pythread:*remote-call-thread*
+    (pythread::kernel-start-callback)))
+
 (defun make-nglwidget (&rest kwargs-orig
                        &key (structure nil structure-p)
                          (representations nil representations-p)
@@ -234,7 +236,7 @@
                          (gui nil gui-p)
                          (theme "default" theme-p)
                          &allow-other-keys)
-  (jupyter:inform :info nil "make-nglwidget~%")
+  (jupyter:inform :info nil "make-nglwidget")
   (let ((kwargs (copy-list kwargs-orig)))
     (when structure-p (remf kwargs :structure))
     (when representations-p (remf kwargs :representations))
@@ -254,19 +256,19 @@
       ; to our on-comm-message
       ; (cl-ipykernel:on-msg widget '%ngl-handle-msg)
       ; #+(or)(progn
-      ;         (jupyter:inform :info nil "Starting handle-msg-thread from process ~s~%" (bordeaux-threads:current-thread))
+      ;         (jupyter:inform :info nil "Starting handle-msg-thread from process ~s" (bordeaux-threads:current-thread))
       ;         (setf (handle-msg-thread widget)
       ;               (mp:process-run-function
       ;                'handle-msg-thread
       ;                (lambda ()
       ;                  (cl-ipkernel:on-msg widget '%ngl-handle-msg)
-      ;                  (jupyter:inform :info nil "Calling cl-ipykernel:on-msg widget with #'%ngl-handle-msg in process: ~s~%" (bordeaux-threads:current-thread))
+      ;                  (jupyter:inform :info nil "Calling cl-ipykernel:on-msg widget with #'%ngl-handle-msg in process: ~s" (bordeaux-threads:current-thread))
       ;                  (loop
                          ;; yield while respecting callbacks to ngl-handle-msg
       ;                    (bordeaux-threads:thread-yield)
       ;                    (sleep 1) ;; I don't want to sleep here - do I?   Will it slow down callbacks to %ngl-handle-msg
       ;                    (format t "handle-msg-thread in process-yield loop ~s~%" (get-internal-real-time ) ))
-      ;                  (jupyter:inform :info nil "Leaving handle-msg-thread - but this shouldn't happen - this thread should be killed!!!!!~%"))
+      ;                  (jupyter:inform :info nil "Leaving handle-msg-thread - but this shouldn't happen - this thread should be killed!!!!!"))
       ;                cl-jupyter:*default-special-bindings*)))
       (when parameters-p (setf (parameters widget) parameters))
       (cond
@@ -278,20 +280,22 @@
         (structure
          (add-structure widget structure)))
       ;; call before setting representations
-      (jupyter:inform :info nil "About to set representations -> ~a~%" representations)
+      (jupyter:inform :info nil "About to set representations -> ~a" representations)
       (when representations
         (check-type representations array)
         (setf (init-representations widget) representations))
       (%set-unsync-camera widget)
       (%remote-call widget "setSelector" :target "Widget" :args (list (jupyter:make-uuid)))
-      (let ((new-player (make-instance 'trajectory-player :%view widget)))
-        (setf (player widget) new-player))
-      (setf (already-constructed widget) t)
+      ; (jupyter:inform :info widget "Creating player")
+      ; (let ((new-player (make-instance 'trajectory-player :%view widget)))
+      ;   (setf (player widget) new-player))
+      ; (setf (already-constructed widget) t)
+      (jupyter:inform :info widget "Completed widget construction")
       widget)))
 
 
 (defmethod %set-serialization ((self nglwidget) &optional frame-range)
-  (setf (ngl-serialize self) :true)
+  (setf (ngl-serialize self) t)
   (setf (ngl-msg-archive self)
          (mapcar (lambda (callback)
                    (ngl-msg callback))
@@ -317,7 +321,7 @@
       )))
 
 (defmethod %unset-serialization ((self nglwidget))
-  (setf (ngl-serialize self) :false
+  (setf (ngl-serialize self) nil
         (ngl-msg-archive self) nil
         (ngl-coordinate-resource self) nil
         (ngl-full-stage-parameters-embed self) nil))
@@ -429,7 +433,7 @@
 
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :picked)) old new)
   (declare (ignore type name))
-  (jupyter:inform :info nil "%on-picked called with name: ~s new: ~s old: ~s~%" name new old)
+  (jupyter:inform :info nil "%on-picked called with name: ~s new: ~s old: ~s" name new old)
   (when (and new
              (dict-entry "atom" new)
              (slot-boundp self '%pick-history))
@@ -526,13 +530,13 @@
 
 
 (defmethod wait-until-finished ((widget nglwidget) &optional (timeout 1.0))
-  (jupyter:inform :info nil "entered wait-until-finished~%")
+  (jupyter:inform :info nil "entered wait-until-finished")
   (pythread:clear (event widget))
   (loop
     (sleep timeout)
     (when (pythread:is-set (event widget))
       (return-from wait-until-finished))
-    (jupyter:inform :info nil "woke wait-until-finished after timeout ~a continuing to wait~%" timeout)))
+    (jupyter:inform :info nil "woke wait-until-finished after timeout ~a continuing to wait" timeout)))
 
 (defmethod %run-on-another-thread ((self nglwidget) func &rest args)
   (error "Finish %run-on-another-thread")
@@ -548,30 +552,30 @@
         return thread
 |#)
 
-(defmethod (setf loaded) :after (new (object nglwidget))
+(defmethod (setf loaded) :after (new (widget nglwidget))
   ;;;(setf (loaded widget) t)
-  (jupyter:inform :info nil "entered on-loaded - firing before-loaded callbacks new -> ~a~%" new)
+  (jupyter:inform :info nil "entered on-loaded - firing before-loaded callbacks new -> ~a" new)
   (when new
     (when (slot-boundp widget '%ngl-displayed-callbacks-before-loaded-reversed)
       (%fire-callbacks widget (ngl-displayed-callbacks-before-loaded-reversed widget)))))
 
 (defmethod %fire-callbacks ((widget nglwidget) callbacks)
-  (jupyter:inform :info nil "%fire-callbacks entered in process ~s~%  callbacks: ~s~%" (bordeaux-threads:current-thread)
+  (jupyter:inform :info nil "%fire-callbacks entered in process ~s~%  callbacks: ~s" (bordeaux-threads:current-thread)
                    (loop for x in callbacks
                          collect (list (pythread:method-name x) (pythread:description x))))
   (flet ((_call ()
-           (jupyter:inform :info nil "%fire-callbacks _call entered in process ~s~%" (bordeaux-threads:current-thread))
+           (jupyter:inform :info nil "%fire-callbacks _call entered in process ~s" (bordeaux-threads:current-thread))
            (loop for callback in callbacks
                  do (progn
-                      (jupyter:inform :info nil "      %fire-callback -> ~s in process ~s~%" (pythread:method-name callback) (bordeaux-threads:current-thread))
+                      (jupyter:inform :info nil "      %fire-callback -> ~s in process ~s" (pythread:method-name callback) (bordeaux-threads:current-thread))
                       (pythread:fire-callback callback widget)
                       (when (string= (pythread:method-name callback) "loadFile")
-                        (jupyter:inform :info nil "    Waiting until finished~%")
+                        (jupyter:inform :info nil "    Waiting until finished")
                         (wait-until-finished widget))))))
     (bordeaux-threads:make-thread (lambda () (_call))
                              :initial-bindings nil ; FIXME: cl-jupyter:*default-special-bindings*
                              :name 'fire-callbacks-thread))
-  (jupyter:inform :info nil "Done %fire-callbacks~%"))
+  (jupyter:inform :info nil "Done %fire-callbacks"))
 
 (defmethod %refresh-render ((widget nglwidget))
   "useful when you update coordinates for a single structure.
@@ -588,14 +592,14 @@
 (defmethod sync-view ((widget nglwidget))
   "Call this if you want to sync multiple views of a single viewer
    Note: unstable feature"
-  (jupyter:inform :info nil "entered sync-view~%")
+  (jupyter:inform :info nil "entered sync-view")
   (let (new-callbacks)
     (loop for c in (reverse (ngl-displayed-callbacks-after-loaded-reversed widget))
           do (let (ngl-msg-kwargs-default-representation)
                (when (and (string= (pythread:method-name c) "loadFile")
                           (setf ngl-msg-kwargs-default-representation (assoc "defaultRepresentation" (cdr (assoc "kwargs" (ngl-msg c) :test #'string=)) :test #'string=)))
-                 (rplacd ngl-msg-kwargs-default-representation :false)))
-             (let ((msg (cons (cons "last_child" :true) (ngl-msg c))))
+                 (rplacd ngl-msg-kwargs-default-representation nil)))
+             (let ((msg (cons (cons "last_child" t) (ngl-msg c))))
                (let ((callback (make-instance 'remote-call-callback
                                               :method-name (cdr (assoc "methodName" msg :test #'string=))
                                               :ngl-msg msg)))
@@ -605,7 +609,7 @@
                       (cons "methodName" "set_representation_from_backend")
                       (cons "args" #())
                       (cons "kwargs" (list))
-                      (cons "last_child" :true)))
+                      (cons "last_child" t)))
            (callback (make-instance 'remote-call-callback
                                     :method-name "set_representation_from_backend"
                                     :ngl-msg msg)))
@@ -812,7 +816,7 @@
       (error "Convert ~a to a simple-array of single-float" coordinates)))
 
 (defmethod set-coordinates ((widget nglwidget) arr-dict)
-  (jupyter:inform :info nil  "In nglview set-coordinates~%")
+  (jupyter:inform :info nil  "In nglview set-coordinates")
   (progn
     (setf (coordinates-dict widget) arr-dict)
     (if (null (send-binary widget))
@@ -822,7 +826,7 @@
           (loop for (index . arr) in (coordinates-dict widget)
                 for byte-buffer = (core:coerce-memory-to-foreign-data (ensure-simple-vector-float arr))
                 do (push byte-buffer buffers)
-                do (jupyter:inform :info nil "number of xyz coords: ~a    number of bytes: ~a~%" (length arr) (clasp-ffi:foreign-data-size byte-buffer))
+                ;do (jupyter:inform :info nil "number of xyz coords: ~a    number of bytes: ~a" (length arr) (clasp-ffi:foreign-data-size byte-buffer))
                 do (push (cons (princ-to-string index) index) coordinates-meta))
           (let ((mytime (* (/ (get-internal-run-time) internal-time-units-per-second) 1000.0)))
             (jupyter-widgets:send-custom widget
@@ -906,7 +910,7 @@
         "
   (when (string= repr-type "surface")
     (unless use-worker-p
-      (setf (getf kwargs :use-worker) :false)))
+      (setf (getf kwargs :use-worker) nil)))
   
   ;; avoid space sensitivity
   (setf repr-type (string-trim " " repr-type))
@@ -983,12 +987,11 @@
   (values))
 
 (defmethod jupyter-widgets:on-custom-message ((widget nglwidget) content buffers)
-  (check-type buffers array)
-  (jupyter:inform :info nil  "%ngl-handle-message in process ~s received content: ~s~%" (bordeaux-threads:current-thread) content)
+  (jupyter:inform :info nil  "%ngl-handle-message in process ~s received content: ~s" (bordeaux-threads:current-thread) content)
   (setf (ngl-msg widget) content)
-  (jupyter:inform :info nil "Just set ngl-msg to content~%")
-  (let ((msg-type ([] content "type")))
-    (jupyter:inform :info nil "    custom message msg-type -> ~s~%" msg-type)
+  (jupyter:inform :info nil "Just set ngl-msg to content")
+  (let ((msg-type (jsown:val content "type")))
+    (jupyter:inform :info nil "    custom message msg-type -> ~s" msg-type)
     (cond
       ((string= msg-type "request_frame")
        (incf (frame widget) (%step (player widget)))
@@ -997,7 +1000,7 @@
            (if (< (frame widget) 0)
                (setf (frame widget) (1- (count widget))))))
       ((string= msg-type "repr_parameters")
-       (let* ((data-dict (dict-lookup "data" (ngl-msg widget))))
+       (let* ((data-dict (cdr (jsown:val content "data"))))
          (error "Finish implementing repr_parameters")))
                                         ;
                                         ;
@@ -1013,23 +1016,23 @@
                                         ;
                                         ;
       ((string= msg-type "request_loaded")
-       (jupyter:inform :info nil "      handling request_loaded~%")
+       (jupyter:inform :info nil "      handling request_loaded")
        (unless (loaded widget)
          (setf (loaded widget) nil))
-       (setf (loaded widget) (eq ([] content "data") :true))
-       (jupyter:inform :info nil "(loaded widget) -> ~a    ([] content \"data\") -> ~s~%" (loaded widget) ([] content "data")))
+       (setf (loaded widget) (jsown:val content "data"))
+       (jupyter:inform :info nil "(loaded widget) -> ~a    (jsown:val content \"data\") -> ~s~%" (loaded widget) (jsown:val content "data")))
       ((string= msg-type "request_repr_dict")
-       (setf (ngl-repr-dict widget) (dict-lookup "data" (ngl-msg widget))))
+       (setf (ngl-repr-dict widget) (cdr (jsown:val content "data"))))
       ((string= msg-type "stage_parameters")
-       (setf (ngl-full-stage-parameters widget) (dict-lookup "data" (ngl-msg widget))))
+       (setf (ngl-full-stage-parameters widget) (cdr (jsown:val content "data"))))
       ((string= msg-type "async_message")
-       (jupyter:inform :info nil "%ngl-handle-msg - received async_message~%")
-       (when (string= ([] content "data") "ok")
-         (jupyter:inform :info nil "    setting event~%")
+       (jupyter:inform :info nil "%ngl-handle-msg - received async_message")
+       (when (string= (jsown:val content "data") "ok")
+         (jupyter:inform :info nil "    setting event")
          (pythread:event-set (event widget))))
       (t
-       (jupyter:inform :info nil "Handle ~a custom message with content: ~s~%" msg-type content))))
-  (jupyter:inform :info nil "Leaving %ngl-handle-msg~%"))
+       (jupyter:inform :info nil "Handle ~a custom message with content: ~s" msg-type content))))
+  (jupyter:inform :info nil "Leaving %ngl-handle-msg"))
     
 #|    def _load_data(self, obj, **kwargs):
   '''
@@ -1098,7 +1101,7 @@ kwargs=kwargs2)
 
 
 (defmethod add-structure ((self nglwidget) structure &rest kwargs)
-  (jupyter:inform :info nil "In add-structure  (loaded self) -> ~a   (already-constructed self) -> ~a~%" (loaded self) (already-constructed self))
+  (jupyter:inform :info nil "In add-structure  (loaded self) -> ~a   (already-constructed self) -> ~a" (loaded self) (already-constructed self))
   (if (not (typep structure 'Structure))
       (error "~s is not an instance of Structure" structure))
   (apply '%load-data self structure kwargs)
@@ -1109,7 +1112,7 @@ kwargs=kwargs2)
   structure)
 
 (defmethod add-trajectory ((widget nglwidget) trajectory &rest kwargs)
-  (jupyter:inform :info nil "entered add-trajectory~%")
+  (jupyter:inform :info nil "entered add-trajectory")
   (let (#+(or)(backends *BACKENDS*)
         (package-name nil))
     ;;; Do stuff with backends
@@ -1127,20 +1130,20 @@ kwargs=kwargs2)
 
 
 (defmethod add-component ((widget nglwidget) filename &rest kwargs)
-  (jupyter:inform :info nil "entered add-component~%")
+  (jupyter:inform :info nil "entered add-component")
   (apply '%load-data widget filename kwargs)
   (append (ngl-component-ids widget) (list (make-uuid t)))
   (%update-component-auto-completion widget))
 
 (defmethod %load-data ((widget nglwidget) obj &key kwargs)
-  (jupyter:inform :info nil "entered %load-data~%")
+  (jupyter:inform :info nil "entered %load-data")
   (check-type kwargs list)
   (let* ((kwargs2 (camelize-dict kwargs))
          (is-url (is-url (make-instance 'file-manager :src obj)))
          passing-buffer binary use-filename blob
          args blob-type)
     (unless (dict-entry "defaultRepresentation" kwargs2)
-      (setf kwargs2 (dict-set-or-push "defaultRepresentation" kwargs2 :true)))
+      (setf kwargs2 (dict-set-or-push "defaultRepresentation" kwargs2 t)))
     (if (null is-url)
         (let ((structure-string (get-structure-string obj)))
           (if structure-string
@@ -1148,29 +1151,31 @@ kwargs=kwargs2)
                     kwargs2 (dict-set-or-push "ext" kwargs2 (ext obj))
                     passing-buffer t
                     use-filename nil
-                    binary :false)
+                    binary nil)
               (error "Handle file-manager loads"))
-          (if (and (eq binary :true) (not use-filename))
+          (if (and (eq binary t) (not use-filename))
               (error "Handle blob decoding of base64 files"))
           (setf blob-type (if passing-buffer "blob" "path"))
-          (setf args (list (list (cons "type" blob-type)
-                                 (cons "data" blob)
-                                 (cons "binary" binary)))))
+          (setf args (list (jsown:new-js
+                       ("type" blob-type)
+                                 ("data" blob)
+                                 ("binary" (or binary :false))))))
         (setf blob-type "url"
               url obj
-              args (list (list (cons "type" blob-type)
-                               (cons "data" url)
-                               (cons "binary" :false)))))
+              args (list (jsown:new-js
+              ("type" blob-type)
+                               ("data" url)
+                               ("binary" :false)))))
     (let ((name (get-name obj :dictargs kwargs2)))
       (setf (ngl-component-names widget) (append (ngl-component-names widget) (cons name nil)))
-      (jupyter:inform :info nil "About to %remote-call widget loadFile~%")
-      (jupyter:inform :info nil "  args: ~a~%" args)
-      (jupyter:inform :info nil "  kwargs: ~a~%" kwargs)
+      (jupyter:inform :info nil "About to %remote-call widget loadFile")
+      (jupyter:inform :info nil "  args: ~a" args)
+      (jupyter:inform :info nil "  kwargs: ~a" kwargs)
       (%remote-call widget "loadFile"
                     :target "Stage"
                     :args args
                     :kwargs kwargs2)))
-  (jupyter:inform :info nil "leaving %load-data~%"))
+  (jupyter:inform :info nil "leaving %load-data"))
           
 (defmethod remove-component ((widget nglwidget) c)
   (let ((component-id (if (typep component-id 'component-viewer)
@@ -1192,7 +1197,7 @@ kwargs=kwargs2)
                     :target "Stage"
                     :args (list component-index)))))
 
-(defmethod %remote-call ((widget nglwidget) method-name &key (target "Widget") args kwargs)
+(defun %remote-call (widget method-name &key (target "Widget") args kwargs)
   "call NGL's methods from Common Lisp
         
         Parameters
@@ -1207,19 +1212,19 @@ kwargs=kwargs2)
         Examples
         --------
         (%remote-call view \"loadFile\" :args '(\"1L2Y.pdb\")
-                          :target \"Stage\" :kwargs '((\"defaultRepresentation\" . :true)))
+                          :target \"Stage\" :kwargs '((\"defaultRepresentation\" . t)))
 
         # perform centerView for 1-th component
         # component = Stage.compList[1];
         # component.centerView(true, \"1-12\");
         (%remote-call view \"centerView\"
                           :target \"component\"
-                          :args (list :true, \"1-12\" )
+                          :args (list t, \"1-12\" )
                           :kwargs '((\"component_index\" . 1)))
         "
   (check-type args list)
   (check-type kwargs list)              ; alist
-  (jupyter:inform :info nil "entered %remote-call ~a~%" method-name)
+  (jupyter:inform :info widget "entered %remote-call ~a" method-name)
   (let ((msg (jsown:new-js
                ("target" target)
                ("type" "call_method")
@@ -1233,26 +1238,26 @@ kwargs=kwargs2)
     (when repr-index
       (setf (jsown:val msg "repr_index") (cdr repr-index))
       (setf kwargs (remove repr-index kwargs)))
-    (setf (jsown:val msg "kwargs") kwargs)
+    (setf (jsown:val msg "kwargs") (cons :obj kwargs))
     (let ((callback-maker (lambda (description)
-                            (jupyter:inform :info nil "About to make-remote-call-callback ~a~%" description)
+                            (jupyter:inform :info nil "About to make-remote-call-callback ~a" description)
                             (pythread:make-remote-call-callback
                              :widget widget
                              :callback (lambda (widget)
-                                         (jupyter:inform :info nil "Start %remote-call method-name -> ~a~%" method-name)
-                                         (jupyter:inform :info nil "      %remote-call widget -> ~s~%" widget)
-                                         (jupyter:inform :info nil "      %remote-call msg -> ~s~%" msg)
+                                         (jupyter:inform :info nil "Start %remote-call method-name -> ~a" method-name)
+                                         (jupyter:inform :info nil "      %remote-call widget -> ~s" widget)
+                                         (jupyter:inform :info nil "      %remote-call msg -> ~s" msg)
                                          (prog1
                                              (jupyter-widgets:send-custom widget msg)
-                                           (jupyter:inform :info nil "    Done %remote-call method-name -> ~s~%" method-name)))
+                                           (jupyter:inform :info nil "    Done %remote-call method-name -> ~s" method-name)))
                              :method-name method-name
                              :description description
                              :ngl-msg msg))))
-      (jupyter:inform :info nil "About to enqueue remote-call method-name -> ~s msg -> ~s  widget -> ~s~%"
+      (jupyter:inform :info nil "About to enqueue remote-call method-name -> ~s msg -> ~s  widget -> ~s"
                        method-name msg widget)
-      (if (and (slot-boundp widget '%loaded) (loaded widget))
+      (if (and (slot-boundp widget 'loaded) (loaded widget))
           (let ((callback (funcall callback-maker "remote-call-add")))
-            (jupyter:inform :info nil "enqueing remote-call ~a~%" callback)
+            (jupyter:inform :info nil "enqueing remote-call ~a" callback)
             (pythread:remote-call-add callback))
           (let ((callback (funcall callback-maker "before-loaded")))
             (if (slot-boundp widget '%ngl-displayed-callbacks-before-loaded-reversed)
@@ -1263,7 +1268,7 @@ kwargs=kwargs2)
           (if (slot-boundp widget '%ngl-displayed-callbacks-after-loaded-reversed)
               (push callback (ngl-displayed-callbacks-after-loaded-reversed widget))
               (setf (ngl-displayed-callbacks-after-loaded-reversed widget) (list callback)))))))
-  (jupyter:inform :info nil "leaving %remote-call ~a~%" method-name)
+  (jupyter:inform :info nil "leaving %remote-call ~a" method-name)
   t)
 
 
@@ -1462,9 +1467,9 @@ kwargs=kwargs2)
 ;;;Starting from the bottom down below. SCROLL!
 
 
-(defmethod %set-place-proxy ((widget nglwidget) widget)
-  (setf (child (%place-proxy widget)) widget)
-  (values))
+;(defmethod %set-place-proxy ((widget nglwidget) widget)
+;  (setf (child (%place-proxy widget)) widget)
+;s  (values))
 
 (defmacro pop-from-alist (key alist)
   (let ((k (gensym "KEY")) (a (gensym "ALIST"))
@@ -1492,7 +1497,7 @@ kwargs=kwargs2)
 
 (defmethod %update-ngl-repr-dict ((self nglwidget))
   "Send a request to the frontend to send representation parameters back"
-  (jupyter:inform :info nil "Called %update-ngl-repr-dict~%")
+  (jupyter:inform :info nil "Called %update-ngl-repr-dict")
   (%remote-call self
                 "request_repr_dict"
                 :target "Widget"))

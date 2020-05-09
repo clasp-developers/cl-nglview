@@ -4,7 +4,7 @@
   (string-trim #(#\Space #\Newline #\Return) string))
 
 (defun javascript-true-p (v)
-  (when (eq v :true)
+  (when (eq v t)
     t)
   nil)
 
@@ -19,7 +19,7 @@
 	       :trait :bool)
    (interpolate :initarg :interpolate :accessor interpolate
 		:type bool
-		:initform :false
+		:initform nil
 		:trait :bool)
    (delay :initarg :delay :accessor delay
 	  :type float
@@ -146,9 +146,9 @@
 			       (cons "step" 1)
 			       (cons "type" (%iterpolation-type player)) ))
   (setf (%render-params player) (list (cons "factor" 4)
-                                      (cons "antialias" :true)
-                                      (cons "trim" :false)
-                                      (cons "transparent" :false)))
+                                      (cons "antialias" t)
+                                      (cons "trim" nil)
+                                      (cons "transparent" nil)))
   ;; the following doesn't appear to be used anywhere correct
   ;; https://github.com/drmeister/spy-ipykernel/blob/master/nglview/player.py#L80
   ;; self._widget_names = [w for w in dir(self) if w.startswith('wiget_')]
@@ -214,7 +214,7 @@
     (setf (%step object) (get params "step" (%step object)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%interpolation-t)) old new)
-  (let ((entry ([] (iparams object) "t")))
+  (let ((entry (jsown:val (iparams object) "t")))
     (if entry
         (setf (cdr entry) new)
         (setf (iparams object) (cons "t" new)))))
@@ -532,16 +532,18 @@
 	(set-title (widget-accordion-repr-parameters self) 0 "Parameters")
 	(set-title (widget-accordion-repr-parameters self) 1 "Hide")
 	(setf (selected-index (widget-accordion-repr-parameters self)) 1)
-	(let ((checkbox-reprlist (make-instance 'checkbox :value :false
+	(let ((checkbox-reprlist (make-instance 'checkbox
+	:value nil
 						:description "reprlist")))
 	  (setf (%ngl-name checkbox-reprlist) "checkbox_reprlist"
 		(widget-repr-choices self) (%make-repr-name-choices self (widget-component-slider self) (widget-repr-slider self)))
 	  (setf (%ngl-name (widget-repr-choices self)) "reprlist_choices"
 		(widget-repr-add self) (%make-add-widget-repr self (widget-component-slider self)))
-	  (flet ((on-update-checkbox-reprlist (change)
-		   (setf (visible (widget-repr-choices self)) (aref change "new"))
+	  (flet ((on-update-checkbox-reprlist (widget type name old new)
+       (declare (ignore widget type name old))
+		   (setf (visible (widget-repr-choices self)) new)
 		 (values)))
-	    (observe checkbox-reprlist on-update-checkbox-reprlist :names "value")	  
+	    (jupyter-widgets:observe checkbox-reprlist :value on-update-checkbox-reprlist)
 	  (error "-make-widget-repr not finished!!")))))))
  #|
         def on_repr_name_text_value_changed(change):
@@ -644,12 +646,12 @@
 				      :max 10
 				      :description "scale"))
 	(checkbox-antialias (make-instance 'checkbox
-					   :value :true
+					   :value t
 					   :description "antialias"))
-	(checkbox-trim (make-instance 'checkbox
+	(checkbox-trim (nilnstance 'checkbox
 				      :value :false
 				      :description "trim"))
-	(checkbox-transparent (make-instance 'checkbox
+	(checkbox-transpnil(make-instance 'checkbox
 					     :value :false
 					     :description "transparent"))
 	(filename-text (make-instance 'text
@@ -708,15 +710,16 @@
  |#
 	    
 (defmethod %make-resize-notebook-slider ((self trajectory-player))
-  (let ((resize-notebook-slider (make-instance 'int-slider :min 300 :max 2000 :description "resize notebook")))
-    (flet ((on-resize-notebook(change)
-	     (let ((width (aref change "new")))
-	       (remote-call (%view self) "resizeNotebook" :target "Widget" :args (list width))
-	       (values))))
-      (observe resize-notebook-slider on-resize-notebook :names "value")
-      resize-notebook-slider)))
-
-
+  (make-instance 'int-slider
+                 :min 300 :max 2000 :description "resize notebook"
+                 :on-trait-change (list
+                                    (cons :value
+                                          (lambda (instance type name old new)
+                                            (declare (ignore instance type name old))
+                                            (remote-call (%view self)
+                                                         "resizeNotebook"
+                                                         :target "Widget"
+                                                         :args (list new)))))))
 
 (defmethod %make-add-widget-repr ((self trajectory-player) component-slider)
   (let ((dropdown-repr-name (make-instance 'dropdown
@@ -801,12 +804,13 @@
 
 (defmethod %make-repr-name-choices ((self trajectory-player) component-slider repr-slider)
   (let ((repr-choices (make-instance 'dropdown :options '((" " . "")))))
-    (flet ((on-chose (change)
-	     (let ((repr-name (aref change "new"))
+    (flet ((on-chose (widget type name old new)
+       (declare (ignore widget type name old))
+	     (let ((repr-name new)
 		   (repr-index (index (options repr-choices))))
 	       (setf (value repr-slider) repr-index)
 	       (values))))
-      (observe repr-choices on-chose :names "value")
+      (jupyter-widgets:observe repr-choices :value on-chose)
       (setf (width (layout repr-choices)) *DEFAULT-TEXT-WIDTH*
 	    (widget-repre-choices self) repr-choices)
       (widget-repr-choices self)))

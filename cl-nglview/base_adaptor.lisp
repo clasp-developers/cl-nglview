@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(jupyter:inform :info nil "base_adaptor.lisp~%")
+(jupyter:inform :info nil "base_adaptor.lisp")
 
 (defclass Structure ()
   ((ext :accessor ext :initform "pdb")
@@ -12,7 +12,7 @@
 
 (defclass Trajectory ()
   ((id :accessor id :initform (jupyter:make-uuid))
-   (shown :accessor shown :type bool :initform :true)))
+   (shown :accessor shown :type bool :initform t)))
 
 (defmethod get-coordinates ((Trajectory Trajectory) index)
   (error "Error in get-coordinates: Not Implemented Error!!! Python code not implemented"))

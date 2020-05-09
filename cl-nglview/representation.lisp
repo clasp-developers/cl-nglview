@@ -26,7 +26,7 @@
 				     :json-name "component_index"))
    (%disable-update-parameters :initarg :%disabled-update-parameters :accessor %disabled-update-parameters
 			       :type bool
-			       :initform :false
+			       :initform nil
 			       :metadata (:sync nil
 						:json-name "_disable_update_parameters"))
    (view :initarg :view :accessor view
@@ -128,7 +128,7 @@
                                        :surface-type surface-types
                                        :box-size '(0. 100 2)
                                        :cutoff '(0. 100 0.1)
-                                       :continuous-update :false)))
+                                       :continuous-update nil)))
             ;;NOTE: INTERACTIVE IS NOT IMPLEMENTED IN COMMON LISP!!! (find it in python in ipywidgets6/widgets/interaction.py
             (loop for kid across (children widget)
                   do

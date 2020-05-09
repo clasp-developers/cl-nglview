@@ -47,12 +47,13 @@
     (if (not (children (aref (children tab) selected-index)))
 	(setf (selected-index tab) -1))
 
-    (flet ((on-update-selected-index (change)
-	     (let ((index (aref change "new")))
+    (flet ((on-update-selected-index (widget type name old new)
+       (declare (ignore widget type name old))
+	     (let ((index new))
 	       (if (not (children (aref (children tab) index)))
 		   (setf (children (aref (children tab) index)) (error "I don't know what to set it to")))
 	       )))
-      (observe tab on-update-selected-index :names "selected-index")
+      (jupyter-widgets:observe tab :selected-index on-update-selected-index)
       (setf (selected-index tab) selected-index)
       tab)))
 

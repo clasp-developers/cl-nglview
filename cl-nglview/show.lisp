@@ -1,7 +1,7 @@
 (in-package :nglv)
 ;;;https://github.com/drmeister/spy-ipykernel/blob/master/nglview/show.py#L37
 
-(jupyter:inform :info nil "widget-log show.lisp~%")
+(jupyter:inform :info nil "widget-log show.lisp")
 
 (defparameter *all* (list "demo" "show_pdbid" "show_url" "show_text" "show_ase" "show_simpletraj" "show_mdtraj" "show_pytraj" "show_mdanalysis" "show_parmed" "show_rdkit" "show_structure_file" "show_htmd"))
 
@@ -9,7 +9,7 @@
   "Show PDB entry.
     Examples - (defparameter w (nglv:show_pdbid \"3pqr\"))
                (cl-ipywidgets::disp w)???????"
-  (jupyter:inform :info nil "show-pdbid ~s~%" pdbid)
+  (jupyter:inform :info nil "show-pdbid ~s" pdbid)
   (let ((structure (make-instance 'PdbIdStructure :pdbid pdbid)))
        (apply #'make-nglwidget :structure structure kwargs)))
 

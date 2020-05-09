@@ -4,11 +4,10 @@
   ((%gui-style :initarg :%gui-style :accessor %gui-style
 	       :trait :unicode
 	       :initform "row"
-	       :observers (%update-gui-style)
 				 :documentation "Options: row or column")
    (%is-beautified :initarg :%is-beautified :accessor %is-beautified
 		   :type bool
-		   :initform :false))
+		   :initform nil))
   (:metaclass jupyter-widgets:trait-metaclass))
 
 (defmethod box.--init-- ((self BoxNGL) #|uh oh|# &key)

@@ -1,4 +1,4 @@
-(jupyter:inform :info nil "nglview  Loading packages.lisp~%")
+(jupyter:inform :info nil "nglview  Loading packages.lisp")
 
 (defpackage "CLEXT.QUEUE"
   (:use "COMMON-LISP"

@@ -29,9 +29,12 @@
 
 
 (defmethod %borrow-attribute ((self ComponentViewer) view attributes &key (trajectory-atts nil))
+  (declare (ignore trajectory-atts))
   (let ((traj (%get-traj-by-id view (id self))))
+    (declare (ignore traj))
     (loop for attname in attributes
        do
-         (let ((view-att nil)))))
+         (let ((view-att nil))
+           (declare (ignore view-att)))))
   (error "Help me!!!"))
 
