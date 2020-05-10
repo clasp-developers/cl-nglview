@@ -99,6 +99,7 @@ DO:         Atomically, dequeue the first message from the QUEUE.  If
 
 RETURN:     the dequeued MESSAGE.
 "
+  (declare (ignore timeoutp timeout-val-p))
   (bt:with-lock-held ((queue-lock queue))
     (loop :until (queue-head queue)
           :do (bt:condition-wait (queue-not-empty queue) (queue-lock queue) :timeout timeout)
@@ -118,6 +119,7 @@ DO:         Atomically, dequeue the first message from the QUEUE.  If
 
 RETURN:     the dequeued MESSAGE.
 "
+  (declare (ignore time))
   (bt:with-lock-held ((queue-lock queue))
     (loop :until (queue-head queue)
           :do (bt:condition-wait (queue-not-empty queue) (queue-lock queue)))

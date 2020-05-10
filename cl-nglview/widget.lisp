@@ -286,10 +286,10 @@
         (setf (init-representations widget) representations))
       (%set-unsync-camera widget)
       (%remote-call widget "setSelector" :target "Widget" :args (list (jupyter:make-uuid)))
-      ; (jupyter:inform :info widget "Creating player")
-      ; (let ((new-player (make-instance 'trajectory-player :%view widget)))
-      ;   (setf (player widget) new-player))
-      ; (setf (already-constructed widget) t)
+      (jupyter:inform :info widget "Creating player")
+      (let ((new-player (make-instance 'trajectory-player :%view widget)))
+        (setf (player widget) new-player))
+      (setf (already-constructed widget) t)
       (jupyter:inform :info widget "Completed widget construction")
       widget)))
 
@@ -574,7 +574,7 @@
                         (wait-until-finished widget))))))
     (bordeaux-threads:make-thread (lambda () (_call))
                              :initial-bindings nil ; FIXME: cl-jupyter:*default-special-bindings*
-                             :name 'fire-callbacks-thread))
+                             :name "fire-callbacks-thread"))
   (jupyter:inform :info nil "Done %fire-callbacks"))
 
 (defmethod %refresh-render ((widget nglwidget))
@@ -824,7 +824,8 @@
         (let (buffers
               coordinates-meta)
           (loop for (index . arr) in (coordinates-dict widget)
-                for byte-buffer = (core:coerce-memory-to-foreign-data (ensure-simple-vector-float arr))
+                for byte-buffer = arr ;(core:coerce-memory-to-foreign-data (ensure-simple-vector-float arr))
+                do (jupyter:inform :info widget "buffer: ~A" arr)
                 do (push byte-buffer buffers)
                 ;do (jupyter:inform :info nil "number of xyz coords: ~a    number of bytes: ~a" (length arr) (clasp-ffi:foreign-data-size byte-buffer))
                 do (push (cons (princ-to-string index) index) coordinates-meta))
@@ -1115,6 +1116,7 @@ kwargs=kwargs2)
   (jupyter:inform :info nil "entered add-trajectory")
   (let (#+(or)(backends *BACKENDS*)
         (package-name nil))
+    (declare (ignore package-name))
     ;;; Do stuff with backends
     (let ((trajectory trajectory))
       (apply '%load-data widget trajectory kwargs)
@@ -1190,8 +1192,8 @@ kwargs=kwargs2)
                      (remove traj (trajlist widget) :test #'equal))))
     (let ((component-index (aref (ngl-component-ids widget) component-id)))
       (remove component-id (ngl-component-ids widget) :test #'equal)
-      (remove component-index (ngl-component-names))
-      (error "Should that have been pop not remove???")
+      (remove component-index (ngl-component-names widget))
+      ; Should that have been pop not remove???
       (%remote-call widget
                     "removeComponent"
                     :target "Stage"
@@ -1306,6 +1308,7 @@ kwargs=kwargs2)
 
 
 (defmethod show-only ((self nglwidget) &optional (indices "all"))
+  (declare (ignore self indices))
   (error "Finish show-only")
   #|
   def show_only(self, indices='all'):
@@ -1379,6 +1382,7 @@ kwargs=kwargs2)
     (loop for id in (ngl-component-ids widget)
        do
          (let ((name (concatenate 'string "component_" (write-to-string index))))
+           (declare (ignore name))
            (incf index)
            (error "WE NEED A DELATTR IN %clear-component-auto-completion in widget.lisp")))))
 #|
@@ -1418,7 +1422,7 @@ kwargs=kwargs2)
 
 (defmethod %-getitem-- ((widget nglwidget) index)
   "return ComponentViewer"
-  (let ((positive-index (get-positive-index py-utils index (length (ngl-component-ids widget)))))
+  (let ((positive-index (get-positive-index index (length (ngl-component-ids widget)))))
     (make-instance 'ComponentViewer :%view widget :%index positive-index))
   (error "Help! We don't have a py-utils thingy in %-getitem-- in widget.lisp"))
 
@@ -1426,6 +1430,7 @@ kwargs=kwargs2)
 (defmethod %-iter-- ((widget nglwidget))
   "return ComponentViewer"
   (let ((index 0))
+    (declare (ignore index))
     (loop for item in (ngl-component-ids widget))
     (error "Implementer %-iter-- in widget.lisp")))
 #|
@@ -1503,10 +1508,11 @@ kwargs=kwargs2)
                 :target "Widget"))
 
 
-(defmethod representations-setter ((widget nglwidget) reps)
-  (dolist (ngl-component-ids widget)
-    (set-representations widget reps))
-  (values))
+; TWB: Appears unused
+; (defmethod representations-setter ((widget nglwidget) reps)
+;   (dolist (ngl-component-ids widget)
+;     (set-representations widget reps))
+;   (values))
 
 (defmethod camera-setter ((widget nglwidget) value)
   (setf (camera-str widget) value)

@@ -1,3 +1,4 @@
+(in-package :nglv)
 (jupyter:inform :info nil "widget-log parameters.lisp")
 (defparameter *REPRESENTATION-NAME-PAIRS* '(("axes" . "axes")
 						 ("point" . "point")

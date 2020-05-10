@@ -8,7 +8,7 @@
     t)
   nil)
 
-(defclass trajectory-player (jupyter-widgets:dom-widget)
+(defclass trajectory-player ()
   ((%step :initarg :%step :accessor %step
 	 :type integer
 	 :trait :int
@@ -185,7 +185,7 @@
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :camera)) old new)
   (let ((camera-type new))
-    (when (slot-boundp object 'view)
+    (when (slot-boundp object '%view)
       (%remote-call (%view object) "setParameters" :target "Stage" :kwargs (list (cons "cameraType" camera-type))))))
 
 (defmethod frame ((self trajectory-player))
@@ -196,54 +196,54 @@
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :sync-frame)) old new)
   (declare (ignore type name))
-  (when (slot-boundp object 'view)
+  (when (slot-boundp object '%view)
     (if new
         (%set-sync-frame (view object))
         (%set-unsync-frame (view object)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :delay)) old new)
-  (when (slot-boundp object 'view)
+  (when (slot-boundp object '%view)
     (%set-delay (view object) new)))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :parameters)) old new)
   (when (slot-boundp object 'sync-frame)
-    (setf (sync-frame object) (get params "sync_frame" (sync-frame object))))
+    (setf (sync-frame object) (get new "sync_frame" (sync-frame object))))
   (when (slot-boundp object 'delay)
-    (setf (delay object) (get params "delay" (delay object))))
+    (setf (delay object) (get new "delay" (delay object))))
   (when (slot-boundp object '%step)
-    (setf (%step object) (get params "step" (%step object)))))
+    (setf (%step object) (get new "step" (%step object)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%interpolation-t)) old new)
-  (let ((entry (jsown:val (iparams object) "t")))
+  (let ((entry (jupyter:json-getf (iparams object) "t")))
     (if entry
         (setf (cdr entry) new)
         (setf (iparams object) (cons "t" new)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :spin)) old new)
-  (when (slot-boundp object 'view)
+  (when (slot-boundp object '%view)
     (if (javascript-true-p (spin object))
         (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))
         (%set-spin (view object) nil nil))))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-x)) old new)
   (declare (ignore type name))
-  (when (slot-boundp object 'view)
+  (when (slot-boundp object '%view)
     (if (javascript-true-p (spin object))
         (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-y)) old new)
   (declare (ignore type name))
-  (when (slot-boundp object 'view)
+  (when (slot-boundp object '%view)
     (if (javascript-true-p (spin object))
         (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
 
-(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-z)) old new)
+(defmethod jupyter-widgets:on-trait-change ((self trajectory-player) type (name (eql :%spin-z)) old new)
   (declare (ignore type name))
-  (when (slot-boundp self 'view)
+  (when (slot-boundp self '%view)
     (if (javascript-true-p (spin self))
         (%set-spin (view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self)))))
 
-(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-speed)) old new)
+(defmethod jupyter-widgets:on-trait-change ((self trajectory-player) type (name (eql :%spin-speed)) old new)
   (declare (ignore type name))
   (if (javascript-true-p (spin self))
       (%set-spin (view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))

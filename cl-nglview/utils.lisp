@@ -101,6 +101,7 @@ def get_name(obj, kwargs):
   (%handle-string-msg widget-text nil (list (cons "event" "submit")) nil))
 
 (defun %update-url (fun)
+  (declare (ignore fun))
   (warn "is updating the URL important?"))
 
 #|

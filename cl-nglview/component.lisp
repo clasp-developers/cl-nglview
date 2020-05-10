@@ -24,7 +24,8 @@
   (aref (ngl-component-ids (%view self)) (%index self)))
 
 (defmethod add-representations ((self ComponentViewer) repr-type &optional (selection "all") &rest kwargs &key &allow-other-keys)
-  (setf (aref kwargs "component") (%index self))
+; TWB: Seems broken
+;  (setf (aref kwargs "component") (%index self))
   (add-representation (%view self) :repr-type repr-type :selection selection kwargs))
 
 

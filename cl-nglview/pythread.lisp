@@ -113,7 +113,7 @@ when the kernel starts up.   This is especially important for the fork-server."
   (defparameter *remote-call-thread* (bordeaux-threads:make-thread 
                                       (lambda () (remote-call-thread-run
                                                   (list "loadFile" "replaceStructure")))
-                                      :name 'remote-call-thread)))
+                                      :name "remote-call-thread")))
 
 ; FIXME: restore or replace
 ; (eval-when (:execute :load-toplevel)
