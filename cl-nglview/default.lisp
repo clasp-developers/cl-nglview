@@ -1,7 +1,13 @@
 (in-package :nglv)
 
-(defparameter *DEFAULT-TEXT-WIDTH* "100px")
+; p:DEFAULT_TEXT_WIDTH
+(defparameter +default-text-width+ "10em")
+
 (defparameter *DROPDOWN-MAX-WIDTH* "30px")
-(defparameter *DEFAULT-SLIDER-WIDTH* "200px")
+
+; p:DEFAULT_SLIDER_WIDTH
+(defparameter +default-slider-width+ "30em")
+
 (defparameter *DEFAULT-PADDING* "40px")
+
 (defparameter *NGL-BASE-URL* "http://arose.github.io/ngl/api/")

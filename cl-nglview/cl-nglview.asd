@@ -13,9 +13,13 @@
   :components (
                (:file "packages")
                (:file "config")
+               (:module "utils"
+                 :serial t
+                 :components ((:file "js-utils")))
                (:file "ngl-widgets")
                (:file "queue")
-               (:file "utils")
+               (:file "utils-local")
+               (:file "layout")
                (:file "shape")
                (:file "pythread")
                (:file "component")

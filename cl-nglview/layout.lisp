@@ -11,17 +11,17 @@
 
 (defun %relayout (box form-item-layout)
   (let ((form-items ()) (box2 nil))
-    (loop for kid across (children box)
+    (loop for kid across (jupyter-widgets:widget-children box)
 	 do
 	 (let ((label-value ""))
 	   (if (and (description kid) (not (or (typep kid 'button) (typep kid 'toggle-button))))
 		(setf label-value (description kid) (description kid) ""))
 	   (if (typep kid 'button)
-		(setf box2 (make-instance 'jupyter-widgets:box :children (vector kid) :layout form-item-layout))
-		(setf box2 (make-instance 'jupyter-widgets:box :children (vector (make-instance 'jupyter-widgets:label :value label-value) kid) :layout form-item-layout)))
+		(setf box2 (make-instance 'jupyter-widgets:box :children (list kid) :layout form-item-layout))
+		(setf box2 (make-instance 'jupyter-widgets:box :children (list (make-instance 'jupyter-widgets:label :value label-value) kid) :layout form-item-layout)))
 	   (push box2 form-items)))))
 
-(defun %relayout-master (box &optional (width "20%"))
+(defun %relayout-master (box &key (width "20%"))
   (let* ((old-children (;;What does box.children[:]??
 			))
 	 (form-items (%relayout box (make-form-item-layout)))
@@ -30,10 +30,12 @@
     form))
 
 (defun %make-autofit (box)
-  (let* ((items-layout (make-instance 'jupyter-widgets:layout :flex "1 1 auto" :width "auto")) ((layout box) items-layout))
-    box))
+  (jupyter:inform :info nil "autofit ~A" box)
+  (setf (jupyter-widgets:widget-flex (jupyter-widgets:widget-layout box)) "1 1 auto"
+        (jupyter-widgets:widget-width (jupyter-widgets:widget-layout box)) "auto")
+  box)
 
-(defun %make-delay-tab (box-factory &optional (selected-index 0))
+(defun %make-delay-tab (box-factory &key (selected-index 0))
   (let ((tab (make-instance 'jupyter-widgets:tab
 			    :children (loop for (box) in box-factory
 					 collect (make-instance 'jupyter-widgets:box))))
@@ -50,8 +52,8 @@
     (flet ((on-update-selected-index (widget type name old new)
        (declare (ignore widget type name old))
 	     (let ((index new))
-	       (if (not (children (aref (children tab) index)))
-		   (setf (children (aref (children tab) index)) (error "I don't know what to set it to")))
+	       (if (not (jupyter-widgets:widget-children (nth (jupyter-widgets:widget-children tab) index)))
+		   (setf (jupyter-widgets:widget-children (nth (jupyter-widgets:widget-children tab) index)) (error "I don't know what to set it to")))
 	       )))
       (jupyter-widgets:observe tab :selected-index on-update-selected-index)
       (setf (selected-index tab) selected-index)

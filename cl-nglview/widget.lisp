@@ -2,7 +2,7 @@
 
 (jupyter:inform :info nil "Loading widget.lisp")
 
-(defparameter *frontend-version* "1.2.0") ;; must match to js/package.json and js/src/widget_ngl.js
+(defparameter +frontend-version+ "1.2.0") ;; must match to js/package.json and js/src/widget_ngl.js
 
 (defparameter *excluded-callback-after-firing*
   (list "setUnSyncCamera" "setSelector" "setUnSyncFrame"
@@ -37,7 +37,7 @@
           :trait :int)
    (background :initarg :background
                :accessor background
-               :trait :unicode
+               :trait :color
                :initform "white") ; I think this is deprecated
    (loaded :initarg :loaded
            :accessor loaded
@@ -74,9 +74,9 @@
                      :type integer
                      :initform 0
                      :trait :int)
-   ;; TODO: remove %parameters?
-   (%parameters :initarg :%parameters
-                :accessor %parameters
+   ;; TODO: remove parameters?
+   (parameters :initarg :parameters
+                :accessor parameters
                 :initform nil) ; not synchronized https://github.com/drmeister/spy-ipykernel/blob/master/nglview/widget.py#L124
    (%ngl-full-stage-parameters :initarg :ngl-full-stage-parameters
                                :accessor ngl-full-stage-parameters
@@ -216,10 +216,10 @@
   (:default-initargs
    :%view-name "NGLView"
    :%view-module "nglview-js-widgets"
-   :%view-module-version *frontend-version*
+   :%view-module-version +frontend-version+
    :%model-name "NGLModel"
    :%model-module "nglview-js-widgets"
-   :%model-module-version *frontend-version*)
+   :%model-module-version +frontend-version+)
   (:metaclass jupyter-widgets:trait-metaclass))
 
 (jupyter-widgets:register-widget nglwidget)
@@ -327,10 +327,6 @@
         (ngl-full-stage-parameters-embed self) nil))
 
 
-
-(defun parameters (widget)
-  (%parameters widget))
-
 #|
 (defun (setf parameters) (params widget)
   (let ((params (camelize-dict params)))
@@ -393,16 +389,12 @@
 
 
 
-(defmethod (setf parameters) (params (widget nglwidget))
-  (let ((params (camelize-dict params)))
-    (setf (%parameters widget) params)
-    (%remote-call widget "setParameters" :target "Widget" :args params))
-  (values))
+(defmethod (setf parameters) :after (new-value (instance nglwidget))
+  (%remote-call instance "setParameters"
+    :target "Widget"
+    :args (list (cons :obj (dict-from-plist new-value)))))
 
-
-
-
-(defun camera (widget)
+(defmethod camera ((widget nglwidget))
   (cond
     ((string= (camera-str widget) "orthographic")
      :orthographic)
@@ -410,7 +402,7 @@
      :perspective)
     (t (error "Illegal value for %camera-str ~s - must be one of orthographic or perspective"))))
 
-(defun (setf camera) (value widget)
+(defmethod (setf camera) (value (widget nglwidget))
   "Values:  :perspective or :orthographic"
   (checktype value (member :perspective :orthographic))
   (let ((camera-str (ecase value
@@ -419,7 +411,7 @@
     (setf (camera-str widget) camera-str)
     (%remote-call widget "setParameters"
                   :target "Stage"
-                  :kwargs (plist-to-kwargs '(:camera-type camera-str)))))
+                  :kwargs (dict-from-plist (list :camera-type camera-str)))))
 
 (defmethod %set-camera-orientation ((self nglwidget) arr)
   (%remote-call self "set_camera_orientation"
@@ -431,7 +423,7 @@
                 "requestUpdateStageParameters"
                 :target "Widget"))
 
-(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :picked)) old new)
+(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :picked)) old new)
   (declare (ignore type name))
   (jupyter:inform :info nil "%on-picked called with name: ~s new: ~s old: ~s" name new old)
   (when (and new
@@ -446,7 +438,7 @@
 
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :background)) old new)
   (declare (ignore type name old))
-  (setf (%parameters object) (list (cons "backgroundColor" new))))
+  (setf (parameters object) (list :background-color new)))
 
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%n-dragged-file)) old new)
   (declare (ignore type name old))
@@ -632,16 +624,15 @@
   (values))
 
 (defmethod display ((widget nglwidget) &key (gui nil) (use-box nil))
-  (if gui
-      (if use-box
-          (let ((box (apply #'make-instance 'BoxNGL widget (%display (player widget)))))
-            (setf (%gui-style box) "row")
-             box)
-          (progn
-            (display widget)
-            (display (%display (player widget)))
-            (values)))
-      widget))
+  (cond
+    ((not gui)
+      widget)
+    (use-box
+      (let ((box (apply #'make-instance 'BoxNGL :children (list widget (%display (player widget))))))
+        (setf (%gui-style box) "row")
+         box))
+    (t
+      (values widget (%display (player widget))))))
 
 
 (defmethod %set-size ((self nglwidget) w h)
@@ -725,8 +716,8 @@
                                   (repr-index 0) &rest parameters)
   (let ((parameters (camelize-dict parameters))
         (kwargs (append
-                 (list (cons "component_index" component)
-                       (cons "repr_index" repr-index))
+                 (list (cons "component_index component
+)                       :(cons "epr_indexx repr-index))
                  parameters)))
     (warn "How do we update kwargs")
     (%remote-call widget
@@ -1519,6 +1510,6 @@ kwargs=kwargs2)
   (%remote-call widget
                 "setParameters"
                 :target "Stage"
-                :kwargs (list (cons "cameraType" (camera-str wiget))))
+                :kwargs (list (cons "cameraType "(camera-str widget))))
   (values))
 
