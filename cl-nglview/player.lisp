@@ -24,7 +24,7 @@
    (interpolate
      :accessor interpolate
      :initform nil
-     :type bool
+     ; :type bool
      :trait :bool)
    (delay
      :accessor delay
@@ -196,7 +196,7 @@
          (setf (padding (layout widget)) padding))))))
 
 (defmethod %create-all-widgets ((self trajectory-player))
-  (setf (widget-tab self) (%display self))
+  (setf (widget-tab self) (jupyter-widgets:%display self))
   (let ((old-index (jupyter-widgets:widget-selected-index (widget-tab self)))
         (new-index 0))
     (loop for (index) across (jupyter-widgets:widget-children (widget-tab self))
@@ -251,92 +251,115 @@
 ; p:_on_spin_changed
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :spin)) old new)
   (when (slot-boundp object '%view)
-    (if (javascript-true-p (spin object))
-        (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))
-        (%set-spin (%view object) nil nil))))
+    (if (spin object)
+      (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))
+      (%set-spin (%view object) :null :null))))
 
 ; p:_on_spin_x_changed
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-x)) old new)
   (declare (ignore type name))
-  (when (slot-boundp object '%view)
-    (if (javascript-true-p (spin object))
-        (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
+  (when (and (slot-boundp object '%view)
+             (spin object))
+    (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))))
 
 ; p:_on_spin_y_changed
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-y)) old new)
   (declare (ignore type name))
-  (when (slot-boundp object '%view)
-    (if (javascript-true-p (spin object))
-        (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
+  (when (and (slot-boundp object '%view)
+             (spin object))
+    (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))))
 
 ; p:_on_spin_z_changed
 (defmethod jupyter-widgets:on-trait-change ((self trajectory-player) type (name (eql :%spin-z)) old new)
   (declare (ignore type name))
-  (when (slot-boundp self '%view)
-    (if (javascript-true-p (spin self))
-        (%set-spin (%view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self)))))
+  (when (and (slot-boundp self '%view)
+             (spin self))
+    (%set-spin (%view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
 
 ; p:_on_spin_speed_changed
 (defmethod jupyter-widgets:on-trait-change ((self trajectory-player) type (name (eql :%spin-speed)) old new)
   (declare (ignore type name))
-  (if (javascript-true-p (spin self))
-      (%set-spin (%view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
+  (when (and (slot-boundp self '%view)
+             (spin self))
+    (%set-spin (%view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
 
 ; p:_display
-(defun %display (self)
+(defmethod jupyter-widgets:%display ((self trajectory-player) &rest args &key &allow-other-keys)
+  (declare (ignore args))
   (jupyter:inform :info nil "trajectory-player %display")
   (with-slots (widget-tab) self
     (unless widget-tab
       (setf widget-tab
             (make-instance 'jupyter-widgets:tab
-            :children (list (%make-general-box self)
-                            ;(%make-widget-repr self)
-                            (%make-widget-preference self))
-                            ;(%make-extra-box self))
-            :%titles '("General"
-            ;"Representation"
-            "Preference")
-            ;"Extra")
-                             :selected-index 0))
-          (jupyter:inform :info nil "trajectory-player %display exit")
-          (setf
-            (jupyter-widgets:widget-align-self (jupyter-widgets:widget-layout widget-tab)) "center")
-            (jupyter:inform :info nil "trajectory-player %display exit")
-          (setf
-            (jupyter-widgets:widget-align-items (jupyter-widgets:widget-layout widget-tab)) "stretch"))
-    (jupyter:inform :info nil "trajectory-player %display exit")
+                           :children (list (%make-general-box self)
+                                           ;(%make-widget-repr self)
+                                           (%make-widget-preference self)
+                                           (%make-spin-box self))
+                           ;(%make-extra-box self))
+                           :%titles '("General"
+                                      ;"Representation"
+                                      "Preference"
+                                      "Spin")
+                           ;"Extra")
+                           :selected-index 0))
+      (setf
+        (jupyter-widgets:widget-align-self (jupyter-widgets:widget-layout widget-tab)) "center"
+        (jupyter-widgets:widget-align-items (jupyter-widgets:widget-layout widget-tab)) "stretch"))
     widget-tab))
 
 ; p:_make_widget_tab
 (defun %make-widget-tab (self)
-  (%display self))
+  (jupyter-widgets:%display self))
 
 ; p:_make_button_center
 (defun %make-button-center (self)
   (make-instance 'jupyter-widgets:button
                  :description " Center"
-                 :icon "fa-bullseye"
+                 :icon "bullseye"
                  :on-click (lambda (button)
                              (declare (ignore button))
                              (center (%view self)))))
 
+(defun make-preference-toggle-button (instance name description value)
+  (let ((widget (make-instance 'jupyter-widgets:toggle-button
+                               :value value
+                               :description description
+                               :style (make-instance 'jupyter-widgets:description-style
+                                                      :description-width +default-text-width+))))
+    (jupyter-widgets:observe widget :value
+      (lambda (widget type nm old-value new-value)
+        (declare (ignore widget type nm old-value))
+        (setf (parameters (%view instance)) (list name (if new-value :true :false)))))
+    (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+      (lambda (view type nm old-value new-value)
+        (declare (ignore view type nm old-value))
+        (setf (jupyter-widgets:widget-value widget)
+          (getf new-value name (jupyter-widgets:widget-value widget)))))
+    widget))
+
 (defun make-preference-label-slider (instance name description value option-labels)
   (let ((widget (make-instance 'jupyter-widgets:selection-slider
-                               :index (position (getf (ngl-full-stage-parameters (%view instance)) name value) option-labels)
+                               :index (position (getf (%ngl-full-stage-parameters (%view instance)) name value) option-labels :test #'string=)
                                :%options-labels option-labels :description description
                                :layout (make-instance 'jupyter-widgets:layout
                                                       :width +default-slider-width+)
                                :style (make-instance 'jupyter-widgets:slider-style
                                                       :description-width +default-text-width+))))
-    (jupyter-widgets:observe widget :value
+    (jupyter-widgets:observe widget :index
       (lambda (widget type nm old-value new-value)
         (declare (ignore widget type nm old-value))
         (setf (parameters (%view instance)) (list name (nth new-value option-labels)))))
+    (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+      (lambda (view type nm old-value new-value)
+        (declare (ignore view type nm old-value))
+        (setf (jupyter-widgets:widget-index widget)
+          (position (getf (%ngl-full-stage-parameters (%view instance)) name)
+                    option-labels :test #'string=))))
     widget))
 
 (defun make-preference-slider (instance name description value min max inc)
   (let ((widget (make-instance (if (floatp inc) 'jupyter-widgets:float-slider 'jupyter-widgets:int-slider)
-                               :value (getf (ngl-full-stage-parameters (%view instance)) name value)
+                               :value (getf (%ngl-full-stage-parameters (%view instance)) name value)
                                :min min :max max :step inc :description description
                                :layout (make-instance 'jupyter-widgets:layout
                                                       :width +default-slider-width+)
@@ -346,14 +369,27 @@
       (lambda (widget type nm old-value new-value)
         (declare (ignore widget type nm old-value))
         (setf (parameters (%view instance)) (list name new-value))))
+    (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+      (lambda (view type nm old-value new-value)
+        (declare (ignore view type nm old-value))
+        (setf (jupyter-widgets:widget-value widget)
+          (getf new-value name (jupyter-widgets:widget-value widget)))))
     widget))
 
 ; p:_make_widget_preference
+; The Python version uses ipywidgets.interactive which we don't have. Instead we just make the
+; panel manually. Also skipping the _relayout_master stuff since that is just a hack for not using
+; either em units or a grid-box.
 (defun %make-widget-preference (self &key (width "100%"))
   (with-slots (widget-preference) self
     (setf widget-preference
           (make-instance 'jupyter-widgets:v-box
                          :children (list
+                                     (make-instance 'jupyter-widgets:button :description "Reset"
+                                       :on-click (lambda (instance)
+                                                   (declare (ignore instance))
+                                                   (setf (parameters (%view self))
+                                                         (%ngl-original-stage-parameters (%view self)))))
                                      (make-preference-slider self :pan-speed "Pan Speed" 0.8 0 10 0.1)
                                      (make-preference-slider self :rotate-speed "Rotate Speed" 2 0 10 1)
                                      (make-preference-slider self :zoom-speed "Zoom Speed" 1.2 0 10 1)
@@ -365,13 +401,14 @@
                                      (make-preference-slider self :fog-near "Fog Near" 60 0 100 1)
                                      (make-preference-slider self :light-intensity "Light Intensity" 1 0 10 0.02)
                                      (make-preference-label-slider self :quality "Quality" "medium" '("low" "medium" "high"))
-                                     (make-preference-slider self :sample-level "Sample Level" 1 -1 5 1))))
+                                     (make-preference-slider self :sample-level "Sample Level" 1 -1 5 1)
+                                     (make-preference-toggle-button self :impostor "Impostor" t))))
     widget-preference))
 
 (defmethod %show-download-image ((self trajectory-player))
   (make-instance 'button
                  :description " Screenshot"
-                 :icon "fa-camera"
+                 :icon "camera"
                  :on-click (lambda (button)
                              (declare (ignore button))
                              (download-image (%view self)))))
@@ -402,7 +439,7 @@
                                (make-instance 'button
                                               :description " Refresh"
                                               :tooltip "Get representation info"
-                                              :icon "fa-refresh"
+                                              :icon "refresh"
                                               :on-click (lambda (button)
                                                           (declare (ignore button))
                                                           (%refresh self component-slider repr-slider)))
@@ -410,7 +447,7 @@
                                (make-instance 'button
                                               :description " Center"
                                               :tooltip "center selected atoms"
-                                              :icon "fa-bullseye"
+                                              :icon "bullseye"
                                               :%ngl-name "button-center-selection"
                                               :on-click (lambda (button)
                                                           (declare (ignore button))
@@ -421,7 +458,7 @@
                                (make-instance 'button
                                               :description " Hide"
                                               :tooltip "Hide/Show current representation"
-                                              :icon "fa-eye-slash"
+                                              :icon "eye-slash"
                                               :on-click (lambda (button-hide)
                                                           (let ((component (value component-slider))
                                                                 (repr-index (value repr-slider))
@@ -438,7 +475,7 @@
                                (make-instance 'button
                                               :description " Remove"
                                               :tooltip "Remove current representation"
-                                              :icon "fa-trash"
+                                              :icon "trash"
                                               :on-click (lambda (button)
                                                           (declare (ignore button))
                                                           (%remove-representation (%view self)
@@ -838,24 +875,40 @@
         return drag_box
  |#
 
-(defmethod %make-spin-box ((self trajectory-player))
-  (let ((checkbox-spin (apply #'make-instance 'checkbox (%spin-x self) :description "spin"))
-	(spin-x-slide (apply #'make-instance 'int-slider (%spin-x self) :min -1 :max 1 :description "spin_x"))
-	(spin-y-slide (apply #'make-instance 'int-slider (%spin-y self) :min -1 :max 1 :description "spin_y"))
-	(spin-z-slide (apply #'make-instance 'int-slider (%spin-z self) :min -1 :max 1 :description "spin_z"))
-	(spin-speed-slide (apply #'make-instance 'float-slider (%spin-speed self) :min 0 :max 0.2 :step 0.001 :description "spin speed")))
-    (error "Only YOU can implement the link traitlet")
-     #|
-        link((checkbox_spin, 'value'), (self, 'spin'))
-        link((spin_x_slide, 'value'), (self, '_spin_x'))
-        link((spin_y_slide, 'value'), (self, '_spin_y'))
-        link((spin_z_slide, 'value'), (self, '_spin_z'))
-        link((spin_speed_slide, 'value'), (self, '_spin_speed'))
-     |#
-
-    (let ((spin-box (make-instance 'vbox :children (list checkbox-spin spin-x-slide spin-y-slide spin-z-slide spin-speed-slide))))
-      (setf spin-box (%relayout-master spin-box :width "75%"))
-      spin-box)))
+; p:_make_spin_box
+(defun %make-spin-box (self)
+  (let ((checkbox-spin (make-instance 'jupyter-widgets:toggle-button :value (spin self) :description "Spin"))
+        (spin-x-slide (make-instance 'jupyter-widgets:int-slider
+                                     :value (%spin-x self) :min -1 :max 1 :description "Spin x"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+        (spin-y-slide (make-instance 'jupyter-widgets:int-slider
+                                     :value (%spin-y self) :min -1 :max 1 :description "Spin y"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+        (spin-z-slide (make-instance 'jupyter-widgets:int-slider
+                                     :value (%spin-z self) :min -1 :max 1 :description "Spin z"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+        (spin-speed-slide (make-instance 'jupyter-widgets:float-slider
+                                         :value (%spin-speed self)
+                                         :min 0 :max 0.2 :step 0.001 :description "Spin Speed"
+                                         :layout (make-instance 'jupyter-widgets:layout
+                                                                :width +default-slider-width+)
+                                         :style (make-instance 'jupyter-widgets:slider-style
+                                                               :description-width +default-text-width+))))
+    (jupyter-widgets:link checkbox-spin :value self :spin)
+    (jupyter-widgets:link spin-x-slide :value self :%spin-x)
+    (jupyter-widgets:link spin-y-slide :value self :%spin-y)
+    (jupyter-widgets:link spin-z-slide :value self :%spin-z)
+    (jupyter-widgets:link spin-speed-slide :value self :%spin-speed)
+    (make-instance 'jupyter-widgets:v-box :children (list checkbox-spin spin-x-slide spin-y-slide spin-z-slide spin-speed-slide))))
 
 (defmethod %make-widget-picked ((self trajectory-player))
   (setf (widget-picked self) (%make-text-picked self))
@@ -906,13 +959,12 @@
           (background-color-picker (make-instance 'color-picker :value "white" :description "background"
                                :style (make-instance 'jupyter-widgets:description-style
                                                       :description-width +default-text-width+)))
-          (camera-type (make-instance 'dropdown :index (position (camera self) +camera-types+) :%options-labels +camera-types+ :description "camera"
+          (camera-type (make-instance 'dropdown :index (position (camera self) +camera-types+ :test #'string=) :%options-labels +camera-types+ :description "camera"
                                :style (make-instance 'jupyter-widgets:description-style
                                                       :description-width +default-text-width+))))
       (jupyter-widgets:link step-slide :value self :step)
       (jupyter-widgets:link delay-text :value self :delay)
       (jupyter-widgets:link toggle-button-interpolate :value self :interpolate)
-      (setf (jupyter-widgets:widget-index camera-type) (position (camera self) +camera-types+))
       (jupyter-widgets:observe camera-type :index
         (lambda (instance name type old new)
           (declare (ignore instance name type old))
@@ -920,7 +972,7 @@
       (jupyter-widgets:observe self :camera
         (lambda (instance name type old new)
           (declare (ignore instance name type old))
-          (setf (jupyter-widgets:widget-index camera-type) (position new +camera-types+))))
+          (setf (jupyter-widgets:widget-index camera-type) (position new +camera-types+ :test #'string=))))
       (jupyter-widgets:link background-color-picker :value (%view self) :background)
     (let* ((center-button (%make-button-center self))
            (render-button (%show-download-image self))

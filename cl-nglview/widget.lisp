@@ -78,17 +78,17 @@
    (parameters :initarg :parameters
                 :accessor parameters
                 :initform nil) ; not synchronized https://github.com/drmeister/spy-ipykernel/blob/master/nglview/widget.py#L124
-   (%ngl-full-stage-parameters :initarg :ngl-full-stage-parameters
-                               :accessor ngl-full-stage-parameters
-                               :trait :dict
+   (%ngl-full-stage-parameters
+                               :accessor %ngl-full-stage-parameters
+                               :trait :plist-camel-case
                                :initform nil)
-   (%ngl-full-stage-parameters-embed :initarg :ngl-full-stage-parameters-embed
-                                     :accessor ngl-full-stage-parameters-embed
-                                     :trait :dict
+   (%ngl-full-stage-parameters-embed
+                                     :accessor %ngl-full-stage-parameters-embed
+                                     :trait :plist-camel-case
                                      :initform nil)
-   (%ngl-original-stage-parameters :initarg :ngl-original-stage-parameters
-                                   :accessor ngl-original-stage-parameters
-                                   :trait :dict
+   (%ngl-original-stage-parameters
+                                   :accessor %ngl-original-stage-parameters
+                                   :trait :plist-camel-case
                                    :initform nil)
    ;; Not sync'd
    (%coordinates-dict :initarg :coordinates-dict
@@ -324,7 +324,7 @@
   (setf (ngl-serialize self) nil
         (ngl-msg-archive self) nil
         (ngl-coordinate-resource self) nil
-        (ngl-full-stage-parameters-embed self) nil))
+        (%ngl-full-stage-parameters-embed self) nil))
 
 
 #|
@@ -609,30 +609,30 @@
       (%fire-callbacks widget (nreverse new-callbacks)))))
 
 
-(defmethod %ipython-display ((widget nglwidget) &rest key &key &allow-other-keys)
-  (if (first-time-loaded widget)
-      (setf (first-time-loaded widget) nil)
-      (sync-view widget))
-  (when (init-gui widget)
-    (when (not (gui widget))
-      (setf (gui widget) (%display (player widget))))
-    (display (gui widget)))
-  (when (or (string= "dark" (theme widget)) (string= "oceans16" (theme widget)))
-    (warn "how do we set the theme")
-    (%remote-call widget "cleanOutput" :target "Widget"))
-  (%ipython-display (place-proxy widget))
-  (values))
+; (defmethod %ipython-display ((widget nglwidget) &rest key &key &allow-other-keys)
+;   (if (first-time-loaded widget)
+;       (setf (first-time-loaded widget) nil)
+;       (sync-view widget))
+;   (when (init-gui widget)
+;     (when (not (gui widget))
+;       (setf (gui widget) (%display (player widget))))
+;     (display (gui widget)))
+;   (when (or (string= "dark" (theme widget)) (string= "oceans16" (theme widget)))
+;     (warn "how do we set the theme")
+;     (%remote-call widget "cleanOutput" :target "Widget"))
+;   (%ipython-display (place-proxy widget))
+;   (values))
 
-(defmethod display ((widget nglwidget) &key (gui nil) (use-box nil))
+(defmethod jupyter-widgets:%display ((widget nglwidget) &rest args &key gui use-box &allow-other-keys)
+  (declare (ignore args))
+  (jupyter:inform :info widget "%display")
   (cond
     ((not gui)
       widget)
     (use-box
-      (let ((box (apply #'make-instance 'BoxNGL :children (list widget (%display (player widget))))))
-        (setf (%gui-style box) "row")
-         box))
+      (make-instance 'jupyter-widgets:h-box :children (list widget (jupyter-widgets:%display (player widget)))))
     (t
-      (values widget (%display (player widget))))))
+      (make-instance 'jupyter-widgets:v-box :children (list widget (jupyter-widgets:%display (player widget)))))))
 
 
 (defmethod %set-size ((self nglwidget) w h)
@@ -1011,12 +1011,14 @@
        (jupyter:inform :info nil "      handling request_loaded")
        (unless (loaded widget)
          (setf (loaded widget) nil))
-       (setf (loaded widget) (jsown:val content "data"))
-       (jupyter:inform :info nil "(loaded widget) -> ~a    (jsown:val content \"data\") -> ~s~%" (loaded widget) (jsown:val content "data")))
+       (setf (loaded widget) (jsown:val content "data")))
       ((string= msg-type "request_repr_dict")
        (setf (ngl-repr-dict widget) (cdr (jsown:val content "data"))))
       ((string= msg-type "stage_parameters")
-       (setf (ngl-full-stage-parameters widget) (cdr (jsown:val content "data"))))
+        (let ((stage-parameters (jupyter:json-to-plist (jsown:val content "data") :symbol-case :camel)))
+          (setf (%ngl-full-stage-parameters widget) stage-parameters)
+          (unless (%ngl-original-stage-parameters widget)
+            (setf (%ngl-original-stage-parameters widget) stage-parameters))))
       ((string= msg-type "async_message")
        (jupyter:inform :info nil "%ngl-handle-msg - received async_message")
        (when (string= (jsown:val content "data") "ok")
@@ -1161,9 +1163,6 @@ kwargs=kwargs2)
                                ("binary" :false)))))
     (let ((name (get-name obj :dictargs kwargs2)))
       (setf (ngl-component-names widget) (append (ngl-component-names widget) (cons name nil)))
-      (jupyter:inform :info nil "About to %remote-call widget loadFile")
-      (jupyter:inform :info nil "  args: ~a" args)
-      (jupyter:inform :info nil "  kwargs: ~a" kwargs)
       (%remote-call widget "loadFile"
                     :target "Stage"
                     :args args
