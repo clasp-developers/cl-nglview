@@ -424,17 +424,11 @@
                 :target "Widget"))
 
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :picked)) old new)
-  (declare (ignore type name))
-  (jupyter:inform :info nil "%on-picked called with name: ~s new: ~s old: ~s" name new old)
-  (when (and new
-             (dict-entry "atom" new)
-             (slot-boundp self '%pick-history))
-    (push new (pick-history self))
-    (setf (pick-history self) (subseq (pick-history self) 0 (min *pick-history-depth* (length (pick-history self))))))
-  (unless (player self)
-    (warn "%on-picked (player self) of ~a is NIL" self))
+  (declare (ignore type name old))
   (when (and (player self) (widget-picked (player self)))
-    (setf (value (widget-picked (player self))) (jsown:to-json new))))
+    (setf (jupyter-widgets:widget-value (widget-picked (player self)))
+          (with-output-to-string (stream)
+            (pprint new stream)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :background)) old new)
   (declare (ignore type name old))
@@ -630,9 +624,14 @@
     ((not gui)
       widget)
     (use-box
-      (make-instance 'jupyter-widgets:h-box :children (list widget (jupyter-widgets:%display (player widget)))))
+      (make-instance 'jupyter-widgets:h-box
+
+                     :children (list widget (jupyter-widgets:%display (player widget)))))
     (t
-      (make-instance 'jupyter-widgets:v-box :children (list widget (jupyter-widgets:%display (player widget)))))))
+      (make-instance 'jupyter-widgets:v-box
+                     :layout (make-instance 'jupyter-widgets:layout
+                                            :align-items "stretch")
+                     :children (list widget (jupyter-widgets:%display (player widget)))))))
 
 
 (defmethod %set-size ((self nglwidget) w h)
@@ -872,7 +871,7 @@
                 :target "Widget"
                 :args (list name shapes)))
 
-(defmethod add-representation ((self nglwidget) repr-type &rest kwargs &key (use-worker nil use-worker-p) (selection "all"))
+(defun add-representation (self repr-type &rest kwargs &key (use-worker nil use-worker-p) (selection "all"))
   "Add structure representation (cartoon, licorice, ...) for given atom selection.
 
         Parameters
@@ -908,7 +907,6 @@
   (setf repr-type (string-trim " " repr-type))
   ;; overwrite selection
   (setf selection (seq-to-string (string-trim " " selection)))
-  (format *debug-io* "kwargs -> ~s~%" kwargs)
   (let* ((kwargs2 (dict-from-plist kwargs))
          (comp-assoc (assoc :component kwargs2))
          (component (prog1

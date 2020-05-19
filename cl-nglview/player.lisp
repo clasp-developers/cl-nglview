@@ -188,8 +188,8 @@
                                       (cons "transparent" nil)))
   player)
 
-(defmethod %update-padding ((self trajectory-player) &optional (padding *DEFAULT-PADDING*))
-  (with-slots (widget-general widget-repr widget-preference widget-repr-parameters widget-help widget-extra wiget-picked) self
+(defmethod %update-padding ((self trajectory-player) &optional (padding +default-padding+))
+  (with-slots (widget-general widget-repr widget-preference widget-repr-parameters widget-help widget-extra widget-picked) self
     (let ((widget-collection (list widget-general widget-repr widget-preference widget-repr-parameters widget-help widget-extra widget-picked)))
       (dolist (widget widget-collection)
         (when widget
@@ -291,20 +291,25 @@
     (unless widget-tab
       (setf widget-tab
             (make-instance 'jupyter-widgets:tab
+                           :layout (make-instance 'jupyter-widgets:layout
+                                                  :width "100%"
+                                                  :align-self "center"
+                                                  :align-items "stretch")
                            :children (list (%make-general-box self)
                                            ;(%make-widget-repr self)
                                            (%make-widget-preference self)
-                                           (%make-spin-box self))
+                                           (%make-spin-box self)
+                                           (%make-widget-picked self)
+                                           (%make-repr-playground self))
                            ;(%make-extra-box self))
                            :%titles '("General"
                                       ;"Representation"
                                       "Preference"
-                                      "Spin")
+                                      "Spin"
+                                      "Picked"
+                                      "Quick")
                            ;"Extra")
-                           :selected-index 0))
-      (setf
-        (jupyter-widgets:widget-align-self (jupyter-widgets:widget-layout widget-tab)) "center"
-        (jupyter-widgets:widget-align-items (jupyter-widgets:widget-layout widget-tab)) "stretch"))
+                           :selected-index 0)))
     widget-tab))
 
 ; p:_make_widget_tab
@@ -316,9 +321,9 @@
   (make-instance 'jupyter-widgets:button
                  :description " Center"
                  :icon "bullseye"
-                 :on-click (lambda (button)
+                 :on-click (list (lambda (button)
                              (declare (ignore button))
-                             (center (%view self)))))
+                             (center (%view self))))))
 
 (defun make-preference-toggle-button (instance name description value)
   (let ((widget (make-instance 'jupyter-widgets:toggle-button
@@ -386,10 +391,10 @@
           (make-instance 'jupyter-widgets:v-box
                          :children (list
                                      (make-instance 'jupyter-widgets:button :description "Reset"
-                                       :on-click (lambda (instance)
+                                       :on-click (list (lambda (instance)
                                                    (declare (ignore instance))
                                                    (setf (parameters (%view self))
-                                                         (%ngl-original-stage-parameters (%view self)))))
+                                                         (%ngl-original-stage-parameters (%view self))))))
                                      (make-preference-slider self :pan-speed "Pan Speed" 0.8 0 10 0.1)
                                      (make-preference-slider self :rotate-speed "Rotate Speed" 2 0 10 1)
                                      (make-preference-slider self :zoom-speed "Zoom Speed" 1.2 0 10 1)
@@ -409,21 +414,22 @@
   (make-instance 'button
                  :description " Screenshot"
                  :icon "camera"
-                 :on-click (lambda (button)
+                 :on-click (list (lambda (button)
                              (declare (ignore button))
-                             (download-image (%view self)))))
+                             (download-image (%view self))))))
 
 (defmethod %make-button-url ((self trajectory-player) url description)
   (make-instance 'button
                  :description description
-                 :on-click (lambda (button)
+                 :on-click (list (lambda (button)
                              (declare (ignore button))
-                             (display (jupyter:javascript (format +open-url-template+ url))))))
+                             (display (jupyter:javascript (format +open-url-template+ url)))))))
 
-(defmethod %make-text-picked ((self trajectory-player))
-  (let ((ta (Textarea :value (funcall dumps json (picked (%view self))) :description "Picked atom")))
-    (setf (width (layout ta)) "300px")
-    ta))
+; p:_make_text_picked
+(defun %make-text-picked (self)
+  (make-instance 'jupyter-widgets:text-area
+                 :rows 10
+                 :layout (make-instance 'jupyter-widgets:layout :width +default-slider-width+)))
 
 (defmethod %refresh ((self trajectory-player) component-slider repr-slideR)
   (%request-repr-parameters (%view self) :component (value component-slider) :repr-index (value repr-slider))
@@ -440,26 +446,26 @@
                                               :description " Refresh"
                                               :tooltip "Get representation info"
                                               :icon "refresh"
-                                              :on-click (lambda (button)
+                                              :on-click (list (lambda (button)
                                                           (declare (ignore button))
-                                                          (%refresh self component-slider repr-slider)))
+                                                          (%refresh self component-slider repr-slider))))
                                ; Center button
                                (make-instance 'button
                                               :description " Center"
                                               :tooltip "center selected atoms"
                                               :icon "bullseye"
                                               :%ngl-name "button-center-selection"
-                                              :on-click (lambda (button)
+                                              :on-click (list (lambda (button)
                                                           (declare (ignore button))
                                                           (center (%view self)
                                                                   :selection (value repr-selection)
-                                                                  :component (value component-slider))))
+                                                                  :component (value component-slider)))))
                                ; Hide/Show button
                                (make-instance 'button
                                               :description " Hide"
                                               :tooltip "Hide/Show current representation"
                                               :icon "eye-slash"
-                                              :on-click (lambda (button-hide)
+                                              :on-click (list (lambda (button-hide)
                                                           (let ((component (value component-slider))
                                                                 (repr-index (value repr-slider))
                                                                 (hide nil))
@@ -470,20 +476,20 @@
                                                                     (description button-hide) "Hide"))
                                                             (%remote-call (%view self) "setVisibilityForRepr"
                                                                           :target "Widget"
-                                                                          :args (list component repr-index (not hide))))))
+                                                                          :args (list component repr-index (not hide)))))))
                                ; Remove button
                                (make-instance 'button
                                               :description " Remove"
                                               :tooltip "Remove current representation"
                                               :icon "trash"
-                                              :on-click (lambda (button)
+                                              :on-click (list (lambda (button)
                                                           (declare (ignore button))
                                                           (%remove-representation (%view self)
                                                                                   :component (value component-slider)
                                                                                   :repr-index (value repr-slider))
                                                           (%request-repr-parameters (%view self)
                                                                                     :component (value component-slider)
-                                                                                    :repr-index (value repr-slider))))
+                                                                                    :repr-index (value repr-slider)))))
                                ; Representation Parameters button
                                (make-instance 'button
                                               :description " Dialog"
@@ -744,55 +750,57 @@
 	add-repr-box))))
  
 
+(defun has-repr-p (representations name)
+  (some
+    (lambda (group)
+      (some
+        (lambda (repr)
+          (equalp name (cdr (assoc "type" (cddr repr) :test #'string=))))
+        (cddr group)))
+    representations))
 
-(defmethod %make-repr-playground ((self trajectory-player))
-  (error "-make-repr-playground in player.lisp needs your help"))
-   #|
-    def _make_repr_playground(self):
-        vbox = VBox()
-        children = []
-
-        rep_names = REPRESENTATION_NAMES[:]
-        excluded_names = ['ball+stick', 'distance']
-        for name in excluded_names:
-            rep_names.remove(name)
-
-        repr_selection = Text(value='*')
-        repr_selection.layout.width = default.DEFAULT_TEXT_WIDTH
-        repr_selection_box  = HBox([Label('selection'), repr_selection])
-        setattr(repr_selection_box, 'value', repr_selection.value)
-
-        for index, name in enumerate(rep_names):
-            button = ToggleButton(description=name)
-
-            def make_func():
-                def on_toggle_button_value_change(change, button=button):
-                    selection = repr_selection.value
-                    new = change['new'] # True/False
-                    if new:
-                        self._view.add_representation(button.description, selection=selection)
-                    else:
-                        self._view._remove_representations_by_name(button.description)
-                return on_toggle_button_value_change
-
-            button.observe(make_func(), names='value')
-            children.append(button)
-
-        button_clear = Button(description='clear', button_style='info',
-                icon='fa-eraser')
-
-        @button_clear.on_click
-        def on_clear(button_clear):
-            self._view.clear()
-            for kid in children:
-                # unselect
-                kid.value = False
-
-        vbox.children = children + [repr_selection, button_clear]
-        _make_autofit(vbox)
-        self.widget_quick_repr = vbox
-        return self.widget_quick_repr
- |#
+; p:_make_repr_playground
+(defun %make-repr-playground (player-instance)
+  (let ((repr-selection (make-instance 'jupyter-widgets:text :value "*" :description "Selection"
+                                       :layout (make-instance 'jupyter-widgets:layout
+                                                              :width +default-slider-width+)
+                                       :style (make-instance 'jupyter-widgets:slider-style
+                                                             :description-width +default-text-width+)))
+        (button-clear (make-instance 'jupyter-widgets:button
+                                     :description "Clear"
+                                     :button-style "info"
+                                     :icon "eraser")))
+    (make-instance
+      'jupyter-widgets:v-box
+      :layout (make-instance 'jupyter-widgets:layout :grid-gap +default-padding+)
+      :children (list
+                  button-clear
+                  (make-instance
+                    'jupyter-widgets:v-box
+                    :layout (make-instance 'jupyter-widgets:layout :width "auto" :flex-flow "row wrap")
+                    :children (mapcan (lambda (pair)
+                                        (unless (member (cdr pair) '("distance" "ball+stick") :test #'string=)
+                                          (let ((inst (make-instance 'jupyter-widgets:toggle-button
+                                                                     :value (has-repr-p (ngl-repr-dict (%view player-instance)) (cdr pair))
+                                                                     :description (car pair))))
+                                            (jupyter-widgets:on-button-click button-clear
+                                              (lambda (button)
+                                                (declare (ignore button))
+                                                (setf (jupyter-widgets:widget-value inst) nil)))
+                                            ; (jupyter-widgets:observe (%view player-instance) :%ngl-repr-dict
+                                            ;   (lambda (i name type old-value new-value)
+                                            ;     (declare (ignore i name type old-value))
+                                            ;     (setf (jupyter-widgets:widget-value inst) (has-repr-p new-value (cdr pair)))))
+                                            (jupyter-widgets:observe inst :value
+                                                                     (lambda (inst name type old-value new-value)
+                                                                       (declare (ignore name type old-value))
+                                                                       (unless (equal old-value new-value)
+                                                                         (if new-value
+                                                                           (add-representation (%view player-instance) (cdr pair) :selection (jupyter-widgets:widget-value repr-selection))
+                                                                           (%remove-representations-by-name (%view player-instance) (cdr pair))))))
+                                            (list inst))))
+                                      +representation-names+))
+                  repr-selection))))
 
 (defmethod %make-repr-name-choices ((self trajectory-player) component-slider repr-slider)
   (let ((repr-choices (make-instance 'dropdown :options '((" " . "")))))
@@ -910,10 +918,10 @@
     (jupyter-widgets:link spin-speed-slide :value self :%spin-speed)
     (make-instance 'jupyter-widgets:v-box :children (list checkbox-spin spin-x-slide spin-y-slide spin-z-slide spin-speed-slide))))
 
-(defmethod %make-widget-picked ((self trajectory-player))
+; p:_make_widget_picked
+(defun %make-widget-picked (self)
   (setf (widget-picked self) (%make-text-picked self))
-  (let ((picked-box (make-instance 'hbox :children (list (widget-picked self)))))
-    (%relayout-master picked-box :width "75%")))
+  (make-instance 'jupyter-widgets:h-box :children (list (widget-picked self))))
 
 (defmethod %make-export-image-widget ((self trajectory-player))
   (if (not (widget-export-image self))

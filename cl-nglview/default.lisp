@@ -8,6 +8,7 @@
 ; p:DEFAULT_SLIDER_WIDTH
 (defparameter +default-slider-width+ "30em")
 
-(defparameter *DEFAULT-PADDING* "40px")
+; p:DEFAULT_PADDING
+(defparameter +default-padding+ "40px")
 
 (defparameter *NGL-BASE-URL* "http://arose.github.io/ngl/api/")
