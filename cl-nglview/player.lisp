@@ -300,14 +300,16 @@
                                            (%make-widget-preference self)
                                            (%make-spin-box self)
                                            (%make-widget-picked self)
-                                           (%make-repr-playground self))
+                                           (%make-repr-playground self)
+                                           (%make-export-image-widget self))
                            ;(%make-extra-box self))
                            :%titles '("General"
                                       ;"Representation"
                                       "Preference"
                                       "Spin"
                                       "Picked"
-                                      "Quick")
+                                      "Quick"
+                                      "Image")
                            ;"Extra")
                            :selected-index 0)))
     widget-tab))
@@ -636,77 +638,76 @@
 		 :name name)))
       (setf (%ngl-name widget) "repr_parameters_box")
       widget)))
-      
-(defmethod %make-button-export-image ((self trajectory-player))
-  (let ((slider-factor (make-instance 'int-slider
-				      :value 4
-				      :min 1
-				      :max 10
-				      :description "scale"))
-	(checkbox-antialias (make-instance 'checkbox
-					   :value t
-					   :description "antialias"))
-	(checkbox-trim (nilnstance 'checkbox
-				      :value :false
-				      :description "trim"))
-	(checkbox-transpnil(make-instance 'checkbox
-					     :value :false
-					     :description "transparent"))
-	(filename-text (make-instance 'text
-				      :value "Screenshot"
-				      :description "Filename"))
-	(delay-text (make-instance 'float-text
-				   :value 1
-				   :description "delay (s)"
-				   :tooltip "hello"))
-	(start-text (make-instance 'int-text
-				   :value 0
-				   :description "start"))
-	(stop-text (make-instance 'int-text
-				  :value (count (%view self))
-				  :description "stop"))
-	(step-text (make-instance 'int-text
-				  :value 1
-				  :description "step")))
-    (setf (max-width (layout start-text)) +default-text-width+
-	  (max-width (layout stop-text)) +default-text-width+
-	  (max-width (layout step-text)) +default-text-width+
-	  (max-width (layout filename-text)) +default-text-width+
-	  (max-width (layout delay-text)) +default-text-width+)
-	  ; TODO: implement on-click-images in player.lisp!
-    (let ((button-movie-images (make-instance 'button
-					      :description "Export Images")))
-       (flet ((download-image (filename)
-	        (download-image (%view self)
-	 		       :factor (value slider-factor)
-	 		       :antialias (value checkbox-antialias)
-	 		       :trim (value checkbox-trim)
-	 		       :transparent (value checkbox-transparent)
-	 		       :filename filename)))
-	(let* ((vbox (make-instance 'vbox
-				   :children (list button-movie-images
-						     start-text
-						     stop-text
-						     step-text
-						     delay-text
-						     filename-text
-						     slider-factor
-						     checkbox-antialias
-						     checkbox-trim
-						     checkbox-transparent)))
-	       (form-items (%relayout vbox make-form-item-layout))
-	       (form (make-instance 'Box form-items :layout (%make-box-layout))))
-	  form)))))
-     #|
-        @button_movie_images.on_click
-        def on_click_images(button_movie_images):
-            for i in range(start_text.value, stop_text.value, step_text.value):
-                self._view.frame = i
-                time.sleep(delay_text.value)
-                download_image(filename=filename_text.value + str(i))
-                time.sleep(delay_text.value)
- |#
-	    
+
+; p:_make_button_export_image
+(defun %make-button-export-image (self)
+  (let* ((layout (make-instance 'jupyter-widgets:layout
+                                     :width +default-slider-width+))
+         (style (make-instance 'jupyter-widgets:description-style
+                                                             :description-width +default-text-width+))
+         (slider-factor (make-instance 'int-slider
+                                       :value 4 :min 1 :max 10
+                                       :description "scale"
+                                       :layout layout
+                                       :style (make-instance 'jupyter-widgets:slider-style
+                                                             :description-width +default-text-width+)))
+         (checkbox-antialias (make-instance 'jupyter-widgets:toggle-button :value t :description "antialias"))
+         (checkbox-trim (make-instance 'jupyter-widgets:toggle-button :value nil :description "trim"))
+         (checkbox-transparent (make-instance 'jupyter-widgets:toggle-button :value nil :description "transparent"))
+         (filename-text (make-instance 'text
+                                       :value "Screenshot" :description "Filename"
+                                       :style style))
+         (delay-text (make-instance 'float-text
+                                    :value 1
+                                    :description "delay (s)"
+                                    :tooltip "hello"
+                                    :style style))
+         (start-text (make-instance 'int-text
+                                    :value 0
+                                    :description "start"
+                                    :style style))
+         (stop-text (make-instance 'int-text
+                                   :value (count (%view self))
+                                   :description "stop"
+                                   :style style))
+         (step-text (make-instance 'int-text
+                                   :value 1
+                                   :description "step"
+                                   :style style))
+         (button-movie-images (make-instance 'button
+                                             :description "Export Images")))
+    (jupyter-widgets:on-button-click
+      button-movie-images
+      (lambda (button)
+        (declare (ignore button))
+        (do* ((step (jupyter-widgets:widget-value step-text))
+              (stop (jupyter-widgets:widget-value stop-text))
+              (delay (jupyter-widgets:widget-value delay-text))
+              (antialias (jupyter-widgets:widget-value checkbox-antialias))
+              (trim (jupyter-widgets:widget-value checkbox-trim))
+              (transparent (jupyter-widgets:widget-value checkbox-transparent))
+              (filename (jupyter-widgets:widget-value filename-text))
+              (factor (jupyter-widgets:widget-value slider-factor))
+              (frame (jupyter-widgets:widget-value start-text) (+ frame step)))
+             ((>= frame stop))
+          (setf (frame (%view self)) frame)
+          (sleep delay)
+          (download-image (%view self) :filename (format nil "~A~A" filename frame)
+                          :factor factor :antialias antialias :trim trim :transparent transparent)
+          (sleep delay))))
+
+    (make-instance 'jupyter-widgets:v-box
+                   :children (list button-movie-images
+                                   start-text
+                                   stop-text
+                                   delay-text
+                                   filename-text
+                                   slider-factor
+                                   checkbox-antialias
+                                   checkbox-trim
+                                   checkbox-transparent))))
+
+
 (defmethod %make-resize-notebook-slider ((self trajectory-player))
   (make-instance 'int-slider
                  :min 300 :max 2000 :description "resize notebook"
@@ -923,11 +924,10 @@
   (setf (widget-picked self) (%make-text-picked self))
   (make-instance 'jupyter-widgets:h-box :children (list (widget-picked self))))
 
-(defmethod %make-export-image-widget ((self trajectory-player))
-  (if (not (widget-export-image self))
-      (setf (widget-export-image self) (make-instance 'hbox :children (list (funcall (%make-button-export-image self))))))
-      (widget-export-image self))
-;;;HELP! This can't be right. I don't think my vector works properly.
+(defun %make-export-image-widget (player-instance)
+  (unless (widget-export-image player-instance)
+    (setf (widget-export-image player-instance) (%make-button-export-image player-instance)))
+  (widget-export-image player-instance))
 
 (defmethod %make-extra-box ((self trajectory-player))
   (if (not (widget-extra self))
