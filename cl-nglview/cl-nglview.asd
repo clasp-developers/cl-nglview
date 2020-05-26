@@ -4,7 +4,8 @@
   :version "0.1"
   :author "Kevin Esslinger, Alex Rose, Christian Schafmeister"
   :license "LGPL2. See LICENSE."
-  :depends-on (:common-lisp-jupyter
+  :depends-on (:alexandria
+               :common-lisp-jupyter
                :bordeaux-threads
                :jsown
                :trivial-garbage
@@ -13,9 +14,11 @@
   :components (
                (:file "packages")
                (:file "config")
+               (:file "color")
                (:module "utils"
                  :serial t
-                 :components ((:file "js-utils")))
+                 :components ((:file "js-utils")
+                              (:file "py-utils")))
                (:file "ngl-widgets")
                (:file "queue")
                (:file "utils-local")
@@ -28,6 +31,7 @@
                (:file "base_adaptor")
                (:file "adaptor")
                (:file "show")
+               (:file "representation")
                (:file "player")
                (:file "parameters")
                (:file "default")

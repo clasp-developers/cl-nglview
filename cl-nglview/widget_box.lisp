@@ -13,8 +13,8 @@
 (defmethod box.--init-- ((self BoxNGL) #|uh oh|# &key)
   (setf (layout self) (make-form-item-layout)))
 
-(defmethod jupyter-widgets:on-trait-change ((object BoxNGL) type (name (eql :%gui-style)) old new)
-  (declare (ignore type name old))
+(defmethod jupyter-widgets:on-trait-change ((object BoxNGL) type (name (eql :%gui-style)) old new source)
+  (declare (ignore type name old source))
   (let ((what new))
     (setf (flex-flow (layout object)) (lower what))))
 

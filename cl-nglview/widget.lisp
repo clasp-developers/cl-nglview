@@ -105,7 +105,7 @@
                         :trait :list)
    (%ngl-repr-dict :initarg :ngl-repr-dict
                    :accessor ngl-repr-dict
-                   :trait :dict
+                   :trait :json
                    :initform nil)
    (%ngl-component-ids :initarg :ngl-component-ids
                        :accessor ngl-component-ids
@@ -423,92 +423,62 @@
                 "requestUpdateStageParameters"
                 :target "Widget"))
 
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :picked)) old new)
-  (declare (ignore type name old))
+(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :picked)) old new source)
+  (declare (ignore type name old source))
   (when (and (player self) (widget-picked (player self)))
     (setf (jupyter-widgets:widget-value (widget-picked (player self)))
           (with-output-to-string (stream)
             (pprint new stream)))))
 
-(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :background)) old new)
-  (declare (ignore type name old))
+(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :background)) old new source)
+  (declare (ignore type name old source))
   (setf (parameters object) (list :background-color new)))
 
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%n-dragged-file)) old new)
-  (declare (ignore type name old))
+(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%n-dragged-file)) old new source)
+  (declare (ignore type name old source))
   (when (and (= (- new old) 1) (slot-boundp self '%ngl-component-ids))
     (setf (ngl-component-ids self) (append (ngl-component-ids self) (make-uuid t)))))
 
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new)
-  (declare (ignore type name old))
+(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new source)
+  (declare (ignore type name old source))
   (when (player self)
     (when (widget-repr (player self))
-      (let ((component-slider (get-widget-by-name (widget-repr (player self)) "component_slider")))
+      (let ((component-slider (widget-component-slider (player self))))
         (when (>= (1- new) (min component-slider))
           (setf (max component-slider) (1- new))))
-      (let ((component-dropdown (get-widget-by-name (widget-repr (player self)) "component_dropdown")))
+      (let ((component-dropdown (widget-component-dropdown (player self))))
         ;; component_dropdown.options = tuple(self._ngl_component_names)
         (setf (options component-dropdown) (ngl-component-names self))
         (when (= new 0)
           (setf (options component-dropdown) (list " ")
                 (value component-dropdown) " "
                 (max component-slider) 0)
-          (let ((reprlist-choices (get-widget-by-name (widget-repr (player self)) "reprlist_choices")))
+          (let ((reprlist-choices (widget-repr-choices (player self))))
             (setf (options reprlist-choices) (list " ")))
-          (let ((reprlist-slider (get-widget-by-name (widget-repr (player self)) "repr_slider")))
+          (let ((reprlist-slider (widget-repr-slider (player self))))
             (setf (max repr-slider) 0))
-          (let ((repr-name-text (get-widget-by-name (widget-repr (player self)) "repr_name_text"))
-                (repr-name-selection (get-widget-by-name (widget-repr (player self)) "repr_selection")))
+          (let ((repr-name-text (widget-repr-name (player self)))
+                (repr-name-selection (widget-repr-selection (player self))))
             (setf (value repr-name-text) " "
                   (value repr-selection) " ")))))))
 
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%ngl-repr-dict)) old new)
-  (declare (ignore type name old))
+; p:_handle_repr_dict_changed
+(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%ngl-repr-dict)) old new source)
+  (declare (ignore type name old source))
   (when (and (slot-boundp self '%player) (player self) (widget-repr (player self)))
-    (let* ((repr-slider (get-widget-by-name (widget-repr (player self)) "repr_slider"))
-           (component-slider (get-widget-by-name (widget-repr (player self)) "component_slider"))
-           (repr-name-text (get-widget-by-name (widget-repr (player self)) "repr_name_text"))
-           (repr-selection (get-widget-by-name (widget-repr (player self)) "repr_selection"))
-           (reprlist-choices (get-widget-by-name (widget-repr (player self)) "reprlist_choices"))
+    (let* ((repr-slider (widget-repr-slider (player self)))
+           (component-slider (widget-component-slider (player self)))
+           (repr-name-text (widget-repr-name (player self)))
+           (repr-selection (widget-repr-selection (player self)))
+           (reprlist-choices (widget-repr-choices (player self)))
            (repr-names (get-repr-names-from-dict (ngl-repr-dict self) (value component-slider))))
-      (if (and (consp new)
-               (= (length new) 1)
-               (consp (car new))
-               (= (car (car new)) 0)
-               (eq (cdr (car new)) nil))
-          (setf (value repr-selection) "")
-          (error "Finish implementing %handle-repr-dict-changed")
-          #|
-          if change['new'] == {0: {}}:
-          repr_selection.value = ''
-          else:
-          options = tuple(
-                    str(i) + '-' + name for (i, name) in enumerate(repr_names))
-                reprlist_choices.options = options
-
-                try:
-                    value = reprlist_choices.options[repr_slider.value]
-                    if isinstance(value, tuple):
-                        # https://github.com/jupyter-widgets/ipywidgets/issues/1512
-                        value = value[0]
-                    reprlist_choices.value = value
-                except IndexError:
-                    if repr_slider.value == 0:
-                        # works fine with ipywidgets 5.2.2
-                        reprlist_choices.options = tuple([
-                            ' ',
-                        ])
-                        reprlist_choices.value = ' '
-                    else:
-                        reprlist_choices.value = reprlist_choices.options[
-                            repr_slider.value - 1]
-
-                # e.g: 0-cartoon
-                repr_name_text.value = reprlist_choices.value.split('-')[-1].strip()
-
-                repr_slider.max = len(repr_names) - 1 if len(
-                    repr_names) >= 1 else len(repr_names)
-          |#))))
+      (cond
+        ((and (consp new)
+              (= (length new) 1)
+              (consp (car new))
+              (= (car (car new)) 0)
+              (eq (cdr (car new)) nil))
+          (setf (jupyter-widgets:widget-value repr-selection) ""))))))
 
 (defmethod %update-count ((widget nglwidget))
   (setf (count widget) (apply #'max (loop for traj in (trajlist widget) collect (n-frames traj))))
@@ -713,18 +683,15 @@
 
 (defmethod update-representation ((widget nglwidget) &optional (component 0)
                                   (repr-index 0) &rest parameters)
-  (let ((parameters (camelize-dict parameters))
-        (kwargs (append
-                 (list (cons "component_index component
-)                       :(cons "epr_indexx repr-index))
-                 parameters)))
-    (warn "How do we update kwargs")
-    (%remote-call widget
-                  "setParameters"
-                  :target "Representation"
-                  :kwargs kwargs)
-    (%update-ngl-repr-dict widget)
-    (values)))
+  (%remote-call widget
+                "setParameters"
+                :target "Representation"
+                :kwargs (append (list (cons "component_index" component)
+                                      (cons "repr_index" repr-index))
+                                (camelize-dict parameters)))
+
+  (%update-ngl-repr-dict widget)
+  (values))
 
 
 (defmethod %update-repr-dict ((self nglwidget))
@@ -779,14 +746,12 @@
   (values))
 
 (defmethod %display-repr ((widget nglwidget) &key (component 0) (repr-index 0) (name nil))
-  (let ((c (concatenate 'string "c" (write-to-string component)))
+  (let ((c (format nil "c~A" component))
         (r (write-to-string repr-index)))
-    (warn "Figure out how to use handler-case")
-    (setf name (aref (aref (aref (ngl-repr-dict widget) c) r) "name"))
-    (make-instance 'RepresentationsControl :view widget
+    (make-instance 'representation-control :view widget
                    :component-index component
                    :repr-index repr-index
-                   :name name)))
+                   :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (ngl-repr-dict widget) c) r) "type"))))
 
 (defmethod %set-coordinates ((widget nglwidget) index)
   "Update coordinates for all trajectories at index-th frame"
@@ -827,7 +792,7 @@
                                          (coerce (nreverse buffers) 'vector)))))
     (values)))
 
-(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :frame)) old new)
+(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :frame)) old new source)
   (when (slot-boundp object 'frame)
     (%set-coordinates object (frame object))))
 
@@ -899,6 +864,7 @@
 
         >>> w.add_cartoon(selection) # w.add_representation('cartoon', selection)
         "
+  (declare (ignore use-worker))
   (when (string= repr-type "surface")
     (unless use-worker-p
       (setf (getf kwargs :use-worker) nil)))
@@ -941,8 +907,8 @@
                 :args (list selection duration)
                 :kwargs (list (cons "component_index" component))))
   
-(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :%image-data)) old new)
-  (declare (ignore type name old))
+(defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :%image-data)) old new source)
+  (declare (ignore type name old source))
   ;;;(setf (_b64value (widget-image object)) new)
   (when (and (slot-boundp object '%hold-image) (hold-image object))
     (setf (image-array object) (concatenate 'string (image-array object) new))))
@@ -977,54 +943,34 @@
   (values))
 
 (defmethod jupyter-widgets:on-custom-message ((widget nglwidget) content buffers)
-  (jupyter:inform :info nil  "%ngl-handle-message in process ~s received content: ~s" (bordeaux-threads:current-thread) content)
+  (jupyter:inform :info widget "Handling custom message ~A" (jsown:val content "type"))
   (setf (ngl-msg widget) content)
-  (jupyter:inform :info nil "Just set ngl-msg to content")
-  (let ((msg-type (jsown:val content "type")))
-    (jupyter:inform :info nil "    custom message msg-type -> ~s" msg-type)
-    (cond
-      ((string= msg-type "request_frame")
-       (incf (frame widget) (%step (player widget)))
-       (if (>= (frame widget) (count widget))
-           (setf (frame widget) 0)
-           (if (< (frame widget) 0)
-               (setf (frame widget) (1- (count widget))))))
-      ((string= msg-type "repr_parameters")
-       (let* ((data-dict (cdr (jsown:val content "data"))))
-         (error "Finish implementing repr_parameters")))
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-                                        ;
-      ((string= msg-type "request_loaded")
-       (jupyter:inform :info nil "      handling request_loaded")
-       (unless (loaded widget)
-         (setf (loaded widget) nil))
-       (setf (loaded widget) (jsown:val content "data")))
-      ((string= msg-type "request_repr_dict")
-       (setf (ngl-repr-dict widget) (cdr (jsown:val content "data"))))
-      ((string= msg-type "stage_parameters")
-        (let ((stage-parameters (jupyter:json-to-plist (jsown:val content "data") :symbol-case :camel)))
-          (setf (%ngl-full-stage-parameters widget) stage-parameters)
-          (unless (%ngl-original-stage-parameters widget)
-            (setf (%ngl-original-stage-parameters widget) stage-parameters))))
-      ((string= msg-type "async_message")
-       (jupyter:inform :info nil "%ngl-handle-msg - received async_message")
-       (when (string= (jsown:val content "data") "ok")
-         (jupyter:inform :info nil "    setting event")
-         (pythread:event-set (event widget))))
-      (t
-       (jupyter:inform :info nil "Handle ~a custom message with content: ~s" msg-type content))))
-  (jupyter:inform :info nil "Leaving %ngl-handle-msg"))
+  (alexandria:switch ((jsown:val content "type") :test #'string=)
+    ("request_frame"
+      (incf (frame widget) (%step (player widget)))
+      (if (>= (frame widget) (count widget))
+        (setf (frame widget) 0)
+        (if (< (frame widget) 0)
+          (setf (frame widget) (1- (count widget))))))
+    ("repr_parameters"
+      (jupyter:inform :error widget "No handler for repr_parameters"))
+    ("request_loaded"
+      (unless (loaded widget)
+        (setf (loaded widget) nil))
+      (setf (loaded widget) (jsown:val content "data")))
+    ("request_repr_dict"
+       (setf (ngl-repr-dict widget) (jsown:val content "data")))
+    ("stage_parameters"
+      (let ((stage-parameters (jupyter:json-to-plist (jsown:val content "data") :symbol-case :camel)))
+        (setf (%ngl-full-stage-parameters widget) stage-parameters)
+        (unless (%ngl-original-stage-parameters widget)
+          (setf (%ngl-original-stage-parameters widget) stage-parameters))))
+    ("async_message"
+      (when (string= (jsown:val content "data") "ok")
+        (jupyter:inform :info widget "Setting event")
+        (pythread:event-set (event widget))))
+    (otherwise
+      (jupyter:inform :warn "No handler for ~A" (jsown:val content "type")))))
     
 #|    def _load_data(self, obj, **kwargs):
   '''

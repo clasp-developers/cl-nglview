@@ -1,45 +1,47 @@
 (in-package :nglv)
 
-(defclass RepresentationControl (cljw:Box)
-  ((parameters :initarg :parameters :accessor parameters
-	       :type list
-	       :initform ()
-	       :observers (%on-parameters-changed)
-	       :metadata (:sync nil
-				:json-name "parameters"))
-   (name :initarg :name :accessor name
-	 :initform nil
-	 :observers (%on-name-changed)
-	 :metadata (:sync nil
-			  :json-name "name"))
-   (repr-index :initarg :repr-index :accessor repr-index
-	       :type integer
-	       :initform 0
-	       :observers (%on-repr-index-changed)
-	       :metadata (:sync nil
-				:json-name "repr_index"))
-   (component-index :initarg :component-index :accessor component-index
-		    :type integer
-		    :initform 0
-		    :observers (%on-component-index-changed)
-		    :metadata (:sync nil
-				     :json-name "component_index"))
-   (%disable-update-parameters :initarg :%disabled-update-parameters :accessor %disabled-update-parameters
-			       :type bool
-			       :initform nil
-			       :metadata (:sync nil
-						:json-name "_disable_update_parameters"))
-   (view :initarg :view :accessor view
-	 :initform nil)
-   (children :initarg :children :accessor children
-	     :type vector
-	     :initform nil)))
+(defparameter +assembly-list+ '("default" "AU" "BU1" "UNITCELL" "SUPERCELL"))
 
-(defmethod initialize-instance :after ((self RepresentationControl))
-  (setf (children self) (children (%make-widget self))))
+(defparameter +surface-types+ '("vws" "sas" "ms" "ses"))
+
+
+(defclass representation-control (vbox)
+  ((parameters
+     :accessor parameters
+     :initform ()
+     :type list
+     :trait :list)
+   (name
+     :accessor name
+     :initarg :name
+     :initform nil
+     :trait :unicode)
+   (repr-index
+     :accessor repr-index
+     :initarg :repr-index
+     :initform 0
+     :type integer
+     :trait :int)
+   (component-index
+     :accessor component-index
+     :initarg :component-index
+     :initform 0
+     :type integer
+     :trait :int)
+   (%disable-update-parameters
+     :accessor %disabled-update-parameters
+     :initform nil
+     :type bool)
+   (%view
+     :accessor %view
+     :initarg :%view
+     :initform nil))
+  (:metaclass jupyter-widgets:trait-metaclass)
+  (:default-initargs
+    :layout (make-instance 'jupyter-widgets:layout :width "auto" :flex-flow "row wrap")))
 
 ;Not an observer
-(defmethod _on_change_widget_child_value ((self RepresentationControl) change)
+(defmethod _on_change_widget_child_value ((self representation-control) change)
   (let ((owner (aref change "owner"))
 	(new (aref change "new")))
     (setf (parameters self) (list (cons (camelize (ngl-description owner)) new))))
@@ -79,7 +81,7 @@
 	(r-string (write-to-string (repr-index object))))
     (%update self c-string r-string)))
 
-(defmethod %update ((self RepresentationControl) c-string r-string)
+(defmethod %update ((self representation-control) c-string r-string)
   (multiple-value-bind (name %repr-dict)
       (%get-name-and-repr-dict self c-string r-string)
     (setf (name self) name (%disable-update-parameters self) t)
@@ -100,55 +102,102 @@
         self._disable_update_parameters = False
 |#
 
-(defmethod %make-widget ((self RepresentationControl))
-  (let ((c-string (concatenate 'string "c" (write-to-string (component-index self))))
-        (r-string (write-to-string (repr-index self))))
-    (multiple-value-bind (name %repr-dict)
-        (%get-name-and-repr-dict self c_string r_string)
-      (let ((assembly-list (list "default" "AU" "BU1" "UNITCELL" "SUPERCELL"))
-            (surface_types (list "vws" "sas" "ms" "ses")))
-        (flet ((func (&key (opacity (get %repr-dict "opacity" 1.))
-                        (assembly (get %repr-dict "assembly" "default"))
-                        (color-scheme (get %repr-dict "colorScheme" " "))
-                        (wireframe (get %repr-dict "wireframe" nil))
-                        (probe-radius (get %repr-dict "probeRadius" 1.4))
-                        (isolevel (get %repr-dict "isolevel" 2.))
-                        (smooth (get %repr-dict "smooth" 2.))
-                        (surface-type (get %repr-dict "surfaceType" "ms"))
-                        (box-size (get %repr-dict "boxSize" 10))
-                        (cutoff (get %repr-dict "cutoff" 0)))))
-          (let ((widget (make-instance 'cl-ipywidgets::interactive
-                                       func
-                                       :opacity '(0. 1. 0.1)
-                                       :color-scheme *COLOR-SCHEMES*
-                                       :assembly assembly-list
-                                       :probe-radius '(0. 5. 0.1)
-                                       :isolevel '(0. 10. 0.1)
-                                       :smooth '(0 10 1)
-                                       :surface-type surface-types
-                                       :box-size '(0. 100 2)
-                                       :cutoff '(0. 100 0.1)
-                                       :continuous-update nil)))
-            ;;NOTE: INTERACTIVE IS NOT IMPLEMENTED IN COMMON LISP!!! (find it in python in ipywidgets6/widgets/interaction.py
-            (loop for kid across (children widget)
-                  do
-                     ;;I think I want to use unwind-protect here or handler-case or somethin.
-                     (error "finish implementing %make-widget in represenation.lisp"))
-            #|
-            try:
-            setattr(kid, '_ngl_description', kid.description)
-            except AttributeError:
-            # ipywidgets.Output does not have `description` attribute
-            setattr(kid, '_ngl_description', '')
-            if kid._ngl_description in ['probe_radius', 'smooth', 'surface_type', 'box_size', 'cutoff']:
-            setattr(kid, '_ngl_type', 'surface')
-            else:
-            setattr(kid, '_ngl_type', 'basic')
-            kid.observe(self._on_change_widget_child_value, 'value')
-            |#
-            widget))))))
+(defun make-representation-toggle-button (instance name description value)
+  (let ((widget (make-instance 'jupyter-widgets:toggle-button
+                               :value value
+                               :description description
+                               :style (make-instance 'jupyter-widgets:description-style
+                                                      :description-width +default-text-width+))))
+    ; (jupyter-widgets:observe widget :value
+    ;   (lambda (widget type nm old-value new-value source)
+    ;     (declare (ignore widget type nm old-value source))
+    ;     (setf (parameters (%view instance)) (list name (if new-value :true :false)))))
+    ; (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+    ;   (lambda (view type nm old-value new-value source)
+    ;     (declare (ignore view type nm old-value source))
+    ;     (setf (jupyter-widgets:widget-value widget)
+    ;       (getf new-value name (jupyter-widgets:widget-value widget)))))
+    widget))
 
-(defmethod %get-name-and-repr-dict ((self RepresentationControl) c-string r-string)
+(defun make-representation-label-slider (instance name description value option-labels)
+  (let ((widget (make-instance 'jupyter-widgets:selection-slider
+                               :index (position value option-labels :test #'string=)
+                               :%options-labels option-labels :description description
+                               :layout (make-instance 'jupyter-widgets:layout
+                                                      :width +default-slider-width+)
+                               :style (make-instance 'jupyter-widgets:slider-style
+                                                      :description-width +default-text-width+))))
+    ; (jupyter-widgets:observe widget :index
+    ;   (lambda (widget type nm old-value new-value source)
+    ;     (declare (ignore widget type nm old-value source))
+    ;     (setf (parameters (%view instance)) (list name (nth new-value option-labels)))))
+    ; (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+    ;   (lambda (view type nm old-value new-value source)
+    ;     (declare (ignore view type nm old-value source))
+    ;     (setf (jupyter-widgets:widget-index widget)
+    ;       (position (getf (%ngl-full-stage-parameters (%view instance)) name)
+    ;                 option-labels :test #'string=))))
+    widget))
+
+(defun make-representation-label-dropdown (instance name description value option-labels)
+  (let ((widget (make-instance 'jupyter-widgets:dropdown
+                               :index (position value option-labels :test #'string=)
+                               :%options-labels option-labels :description description
+                               :layout (make-instance 'jupyter-widgets:layout
+                                                      :width +default-slider-width+)
+                               :style (make-instance 'jupyter-widgets:slider-style
+                                                      :description-width +default-text-width+))))
+    ; (jupyter-widgets:observe widget :index
+    ;   (lambda (widget type nm old-value new-value source)
+    ;     (declare (ignore widget type nm old-value source))
+    ;     (setf (parameters (%view instance)) (list name (nth new-value option-labels)))))
+    ; (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+    ;   (lambda (view type nm old-value new-value source)
+    ;     (declare (ignore view type nm old-value source))
+    ;     (setf (jupyter-widgets:widget-index widget)
+    ;       (position (getf (%ngl-full-stage-parameters (%view instance)) name)
+    ;                 option-labels :test #'string=))))
+    widget))
+
+(defun make-representation-slider (instance name description value min max inc)
+  (let ((widget (make-instance (if (floatp inc) 'jupyter-widgets:float-slider 'jupyter-widgets:int-slider)
+                               :value value
+                               :min min :max max :step inc :description description
+                               :layout (make-instance 'jupyter-widgets:layout
+                                                      :width +default-slider-width+)
+                               :style (make-instance 'jupyter-widgets:slider-style
+                                                      :description-width +default-text-width+))))
+    ; (jupyter-widgets:observe widget :value
+    ;   (lambda (widget type nm old-value new-value source)
+    ;     (declare (ignore widget type nm old-value source))
+    ;     (setf (parameters (%view instance)) (list name new-value))))
+    ; (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+    ;   (lambda (view type nm old-value new-value source)
+    ;     (declare (ignore view type nm old-value source))
+    ;     (setf (jupyter-widgets:widget-value widget)
+    ;       (getf new-value name (jupyter-widgets:widget-value widget)))))
+    widget))
+
+
+; p:_make_widget
+(defmethod initialize-instance :after ((instance representation-control) &rest initargs)
+  (declare (ignore initargs))
+  (with-slots (component-index repr-index) instance
+    (let ((c-string (concatenate 'string "c" (write-to-string (component-index instance))))
+          (r-string (write-to-string (repr-index instance))))
+      (setf (jupyter-widgets:widget-children instance)
+            (list (make-representation-slider instance :opacity "Opacity" 1 0 1 0.1)
+                  (make-representation-label-dropdown instance :color-scheme "Color Scheme" " " +color-schemes+)
+                  (make-representation-label-dropdown instance :assembly "Assembly" "default" +assembly-list+)
+                  (make-representation-slider instance :probe-radius "Probe Radius" 1.4 0 5 0.1)
+                  (make-representation-slider instance :isolevel "Isolevel" 2 0 10 0.1)
+                  (make-representation-slider instance :smooth "Opacity" 2 0 10 1)
+                  (make-representation-label-dropdown instance :surface-types "Surface Types" "smooth" +surface-types+)
+                  (make-representation-slider instance :box-size "Box Size" 10 0 100 2)
+                  (make-representation-slider instance :cutoff "Cutoff" 0 0 100 0.1)
+                  (make-representation-toggle-button instance :wireframe "Wireframe" nil))))))
+
+(defmethod %get-name-and-repr-dict ((self representation-control) c-string r-string)
   (flet ((read-dict (key dict)
 	   (multiple-value-bind (value present-p)
 	       (gethash key dict)

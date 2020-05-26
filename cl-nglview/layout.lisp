@@ -49,8 +49,8 @@
     (if (not (children (aref (children tab) selected-index)))
 	(setf (selected-index tab) -1))
 
-    (flet ((on-update-selected-index (widget type name old new)
-       (declare (ignore widget type name old))
+    (flet ((on-update-selected-index (widget type name old new source)
+       (declare (ignore widget type name old source))
 	     (let ((index new))
 	       (if (not (jupyter-widgets:widget-children (nth (jupyter-widgets:widget-children tab) index)))
 		   (setf (jupyter-widgets:widget-children (nth (jupyter-widgets:widget-children tab) index)) (error "I don't know what to set it to")))
