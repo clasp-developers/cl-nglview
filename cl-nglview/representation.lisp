@@ -55,8 +55,9 @@
 			 :repr-index (repr-index object) &rest (parameters object))
   (values))
 
-;Observer for name
-(defmethod %on-name-changed (object name new old)
+; p:_on_name_changed
+(defmethod on-trait-change ((instance representation) (name (eql :name)) type old-value new-value source)
+  (declare (ignore type old-value source))
   (let ((new-name new))
     (if (string= new-name "surface")
 	(loop for kid across (children object)

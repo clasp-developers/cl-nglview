@@ -112,7 +112,7 @@
                        :type list
                        :initform nil)
    (%ngl-component-names :initarg :ngl-component-names
-                         :accessor ngl-component-names
+                         :accessor %ngl-component-names
                          :type list
                          :initform nil)
    (%already-constructed :initarg :already-constructed
@@ -445,22 +445,27 @@
     (when (widget-repr (player self))
       (let ((component-slider (widget-component-slider (player self))))
         (when (>= (1- new) (min component-slider))
-          (setf (max component-slider) (1- new))))
+          (setf (jupyter-widgets:widget-max component-slider) (1- new))))
       (let ((component-dropdown (widget-component-dropdown (player self))))
         ;; component_dropdown.options = tuple(self._ngl_component_names)
-        (setf (options component-dropdown) (ngl-component-names self))
+        (setf (jupyter-widgets:widget-%options-labels component-dropdown) (%ngl-component-names self))
         (when (= new 0)
-          (setf (options component-dropdown) (list " ")
-                (value component-dropdown) " "
-                (max component-slider) 0)
+          (setf (jupyter-widgets:widget-%options-labels component-dropdown) nil
+                (jupyter-widgets:widget-value component-dropdown) " "
+                (jupyter-widgets:widget-max component-slider) 0)
           (let ((reprlist-choices (widget-repr-choices (player self))))
-            (setf (options reprlist-choices) (list " ")))
+            (setf (jupyter-widgets:widget-options reprlist-choices) nil))
           (let ((reprlist-slider (widget-repr-slider (player self))))
-            (setf (max repr-slider) 0))
+            (setf (jupyter-widgets:widget-max repr-slider) 0))
           (let ((repr-name-text (widget-repr-name (player self)))
                 (repr-name-selection (widget-repr-selection (player self))))
-            (setf (value repr-name-text) " "
-                  (value repr-selection) " ")))))))
+            (setf (jupyter-widgets:widget-value repr-name-text) " "
+                  (jupyter-widgets:widget-value repr-selection) " ")))))))
+
+(defun subseq-after (item seq)
+  (let ((pos (position item seq)))
+    (when pos
+      (subseq seq (1+ pos)))))
 
 ; p:_handle_repr_dict_changed
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%ngl-repr-dict)) old new source)
@@ -478,7 +483,24 @@
               (consp (car new))
               (= (car (car new)) 0)
               (eq (cdr (car new)) nil))
-          (setf (jupyter-widgets:widget-value repr-selection) ""))))))
+          (setf (jupyter-widgets:widget-value repr-selection) ""))
+        (t
+          (setf (jupyter-widgets:widget-%options-labels reprlist-choices)
+                (mapcar (lambda (index name)
+                          (format nil "~A-~A" index name))
+                        (alexandria:iota (length repr-names))
+                        repr-names)
+
+                (jupyter-widgets:widget-index reprlist-choices)
+                (jupyter-widgets:widget-value repr-slider.value)
+
+                (jupyter-widgets:widget-max repr-slider)
+                (max 0 (1- (length repr-names)))
+
+                (jupyter-widgets:widget-value repr-name-text)
+                (subseq-after #\- (nth (jupyter-widgets:widget-index reprlist-choices) (jupyter-widgets:widget-%options-labels reprlist-choices)))))))))
+
+
 
 (defmethod %update-count ((widget nglwidget))
   (setf (count widget) (apply #'max (loop for traj in (trajlist widget) collect (n-frames traj))))
@@ -693,19 +715,11 @@
   (%update-ngl-repr-dict widget)
   (values))
 
+; p:_update_repr_dict
+(defun %update-repr-dict (widget-instance)
+  (%remote-call widget-instance "request_repr_dict" :target "Widget"))
 
-(defmethod %update-repr-dict ((self nglwidget))
-  (error "Finish %update-repr-dict")
-#|
-    def _update_repr_dict(self):
-        """ Send a request to fronend to send representation parameters
-        back.
 
-        # TODO: sync or async
-        """
-        self._remote_call('request_repr_dict', target='Widget')
-  |#
-  )
 (defmethod set-representations ((widget nglwidget) representations &key (component 0))
   (clear-representations widget :component component)
   (let ((kwargs ""))
@@ -723,7 +737,8 @@
              (error "Params must be a dict"))))
   (values))
 
-(defmethod remove-representation ((widget nglwidget) &key (component 0) (repr-index 0))
+; p:_remove_representation
+(defun %remove-representation (widget &key (component 0) (repr-index 0))
   (%remote-call widget
                 "removeRepresentation"
                 :target "Widget"
@@ -836,7 +851,7 @@
                 :target "Widget"
                 :args (list name shapes)))
 
-(defun add-representation (self repr-type &rest kwargs &key (use-worker nil use-worker-p) (selection "all"))
+(defun add-representation (self repr-type &rest kwargs &key (use-worker nil use-worker-p) (selection "all") &allow-other-keys)
   "Add structure representation (cartoon, licorice, ...) for given atom selection.
 
         Parameters
@@ -895,14 +910,15 @@
                     :kwargs params))))
 
 
-(defmethod center ((widget nglwidget) &key (selection "*") (duration 0) (component 0))
+; p:center
+(defun center (widget-instance &key (selection "*") (duration 0) (component 0))
   "center view for given atom selection
 
         Examples
         --------
         view.center(selection='1-4')
   "
-  (%remote-call widget "autoView"
+  (%remote-call widget-instance "autoView"
                 :target "compList"
                 :args (list selection duration)
                 :kwargs (list (cons "component_index" component))))
@@ -953,7 +969,15 @@
         (if (< (frame widget) 0)
           (setf (frame widget) (1- (count widget))))))
     ("repr_parameters"
-      (jupyter:inform :error widget "No handler for repr_parameters"))
+      (let ((data (jsown:val content "data")))
+        (when (and (player widget)
+                   (widget-repr-name (player widget))
+                   (widget-repr-selection (player widget)))
+          (setf (jupyter-widgets:widget-value (widget-repr-name (player widget)))
+                (jsown:val data "name")
+
+                (jupyter-widgets:widget-value (widget-repr-selection (player widget)))
+                (jsown:val data "sele")))))
     ("request_loaded"
       (unless (loaded widget)
         (setf (loaded widget) nil))
@@ -1106,7 +1130,7 @@ kwargs=kwargs2)
                                ("data" url)
                                ("binary" :false)))))
     (let ((name (get-name obj :dictargs kwargs2)))
-      (setf (ngl-component-names widget) (append (ngl-component-names widget) (cons name nil)))
+      (setf (%ngl-component-names widget) (append (%ngl-component-names widget) name))
       (%remote-call widget "loadFile"
                     :target "Stage"
                     :args args
@@ -1126,7 +1150,7 @@ kwargs=kwargs2)
                      (remove traj (trajlist widget) :test #'equal))))
     (let ((component-index (aref (ngl-component-ids widget) component-id)))
       (remove component-id (ngl-component-ids widget) :test #'equal)
-      (remove component-index (ngl-component-names widget))
+      (remove component-index (%ngl-component-names widget))
       ; Should that have been pop not remove???
       (%remote-call widget
                     "removeComponent"
@@ -1189,8 +1213,6 @@ kwargs=kwargs2)
                              :method-name method-name
                              :description description
                              :ngl-msg msg))))
-      (jupyter:inform :info nil "About to enqueue remote-call method-name -> ~s msg -> ~s  widget -> ~s"
-                       method-name msg widget)
       (if (and (slot-boundp widget 'loaded) (loaded widget))
           (let ((callback (funcall callback-maker "remote-call-add")))
             (jupyter:inform :info nil "enqueing remote-call ~a" callback)

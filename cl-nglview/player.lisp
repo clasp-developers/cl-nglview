@@ -424,93 +424,102 @@
                                      (make-preference-toggle-button self :impostor "Impostor" t))))
     widget-preference))
 
-(defmethod %show-download-image ((self trajectory-player))
-  (make-instance 'button
+; p:_show_download_image
+(defun %show-download-image (self)
+  (make-instance 'jupyter-widgets:button
                  :description " Screenshot"
                  :icon "camera"
                  :on-click (list (lambda (button)
-                             (declare (ignore button))
-                             (download-image (%view self))))))
+                                   (declare (ignore button))
+                                   (download-image (%view self))))))
 
-(defmethod %make-button-url ((self trajectory-player) url description)
-  (make-instance 'button
+; p:_make_button_url
+(defun %make-button-url (self url description)
+  (make-instance 'jupyter-widgets:button
                  :description description
                  :on-click (list (lambda (button)
-                             (declare (ignore button))
-                             (jupyter:javascript (format +open-url-template+ url) t)))))
+                                   (declare (ignore button))
+                                   (jupyter:javascript (format +open-url-template+ url) t)))))
 
 ; p:_make_text_picked
 (defun %make-text-picked (self)
   (make-instance 'jupyter-widgets:text-area
                  :rows 10
-                 :layout (make-instance 'jupyter-widgets:layout :width +default-slider-width+)))
+                 :layout (make-instance 'jupyter-widgets:layout
+                 :width +default-slider-width+)))
 
+; p:_refresh
 (defmethod %refresh ((self trajectory-player) component-slider repr-slideR)
-  (%request-repr-parameters (%view self) :component (value component-slider) :repr-index (value repr-slider))
-  (%update-repr-dict (%view self))
-  (%handle-repr-dict-changed (%view self) :change (list (cons "new" (%repr-dict (%view self))))))
+  (%request-repr-parameters (%view self) :component (jupyter-widgets:widget-value component-slider) :repr-index (jupyter-widgets:widget-value repr-slider))
+  (%update-repr-dict (%view self)))
+  ;(%handle-repr-dict-changed (%view self) :change (list (cons "new" (%repr-dict (%view self))))))
 
 
+; p:_make_button_repr_control
 (defun %make-button-repr-control (self component-slider repr-slider repr-selection)
-  (with-slots (widget-repr-control-buttons) self
-    (setf wiget-repr-control-buttons
-    (make-instance 'jupyter-widgets:h-box
-                 :children (list
-                             ; refresh button
-                             (make-instance 'button
-                                            :description " Refresh"
-                                            :tooltip "Get representation info"
-                                            :icon "refresh"
-                                            :on-click (list (lambda (button)
-                                                        (declare (ignore button))
-                                                        (%refresh self component-slider repr-slider))))
-                             ; Center button
-                             (make-instance 'button
-                                            :description " Center"
-                                            :tooltip "center selected atoms"
-                                            :icon "bullseye"
-                                            :%ngl-name "button-center-selection"
-                                            :on-click (list (lambda (button)
-                                                        (declare (ignore button))
-                                                        (center (%view self)
-                                                                :selection (jupyter-widgets:widget-value repr-selection)
-                                                                :component (jupyter-widgets:widget-value component-slider)))))
-                             ; Hide/Show button
-                             (make-instance 'button
-                                            :description " Hide"
-                                            :tooltip "Hide/Show current representation"
-                                            :icon "eye-slash"
-                                            :on-click (list (lambda (button-hide)
-                                                        (let ((component (jupyter-widgets:widget-value component-slider))
-                                                              (repr-index (jupyter-widgets:widget-value repr-slider))
-                                                              (hide nil))
-                                                          (if (string= (jupyter-widgets:widget-description button-hide) "Hide")
-                                                            (setf hide t
-                                                                  (jupyter-widgets:widget-description button-hide) "Show")
-                                                            (setf hide nil
-                                                                  (jupyter-widgets:widget-description button-hide) "Hide"))
-                                                          (%remote-call (%view self) "setVisibilityForRepr"
-                                                                        :target "Widget"
-                                                                        :args (list component repr-index (not hide)))))))
-                             ; Remove button
-                             (make-instance 'button
-                                            :description " Remove"
-                                            :tooltip "Remove current representation"
-                                            :icon "trash"
-                                            :on-click (list (lambda (button)
-                                                        (declare (ignore button))
-                                                        (%remove-representation (%view self)
-                                                                                :component (jupyter-widgets:widget-value component-slider)
-                                                                                :repr-index (jupyter-widgets:widget-value repr-slider))
-                                                        (%request-repr-parameters (%view self)
-                                                                                  :component (jupyter-widgets:widget-value component-slider)
-                                                                                  :repr-index (jupyter-widgets:widget-value repr-slider)))))
-                             ; Representation Parameters button
-                             (make-instance 'button
-                                            :description " Dialog"
-                                            :tooltip "Pop up representation parameters control dialog"))))))
+  (setf (widget-repr-control-buttons self)
+        (make-instance 'jupyter-widgets:h-box
+                       :children (list
+                                   ; refresh button
+                                   (make-instance 'jupyter-widgets:button
+                                                  :description " Refresh"
+                                                  :tooltip "Get representation info"
+                                                  :icon "refresh"
+                                                  :on-click (list (lambda (button)
+                                                                    (declare (ignore button))
+                                                                    (%refresh self component-slider repr-slider))))
+                                   ; Center button
+                                   (make-instance 'jupyter-widgets:button
+                                                  :description " Center"
+                                                  :tooltip "center selected atoms"
+                                                  :icon "bullseye"
+                                                  :%ngl-name "button-center-selection"
+                                                  :on-click (list (lambda (button)
+                                                                    (declare (ignore button))
+                                                                    (center (%view self)
+                                                                            :selection (jupyter-widgets:widget-value repr-selection)
+                                                                            :component (jupyter-widgets:widget-value component-slider)))))
+                                   ; Hide/Show button
+                                   (make-instance 'button
+                                                  :description " Hide"
+                                                  :tooltip "Hide/Show current representation"
+                                                  :icon "eye-slash"
+                                                  :on-click (list (lambda (button-hide)
+                                                                    (let ((component (jupyter-widgets:widget-value component-slider))
+                                                                          (repr-index (jupyter-widgets:widget-value repr-slider))
+                                                                          (hide nil))
+                                                                      (if (string= (jupyter-widgets:widget-description button-hide) "Hide")
+                                                                        (setf hide t
+                                                                              (jupyter-widgets:widget-description button-hide) "Show")
+                                                                        (setf hide nil
+                                                                              (jupyter-widgets:widget-description button-hide) "Hide"))
+                                                                      (%remote-call (%view self) "setVisibilityForRepr"
+                                                                                    :target "Widget"
+                                                                                    :args (list component repr-index (not hide)))))))
+                                   ; Remove button
+                                   (make-instance 'button
+                                                  :description " Remove"
+                                                  :tooltip "Remove current representation"
+                                                  :icon "trash"
+                                                  :on-click (list (lambda (button)
+                                                                    (declare (ignore button))
+                                                                    (%remove-representation (%view self)
+                                                                                            :component (jupyter-widgets:widget-value component-slider)
+                                                                                            :repr-index (jupyter-widgets:widget-value repr-slider))
+                                                                    (%request-repr-parameters (%view self)
+                                                                                              :component (jupyter-widgets:widget-value component-slider)
+                                                                                              :repr-index (jupyter-widgets:widget-value repr-slider)))))))))
+
+; p:on_component_or_repr_slider_value_changed
+(defun on-component-or-repr-slider-value-changed (player-instance)
+  (with-slots (widget-component-slider widget-repr-slider widget-component-dropdown)
+              player-instance
+    (setf (jupyter-widgets:widget-%options-labels widget-component-dropdown)
+          (%ngl-component-names (%view player-instance)))))
+
 
 ; p:_make_widget_repr
+; A lot of this could really be done in initialize-instance
 (defun %make-widget-repr (self)
   (with-slots (widget-repr-add widget-component-slider widget-repr-name widget-component-dropdown
                widget-repr-slider widget-repr-parameters widget-accordion-repr-parameters
@@ -552,10 +561,31 @@
                                            (make-instance 'jupyter-widgets:box))))
 
       (%make-repr-name-choices self)
+      (%make-add-widget-repr self widget-component-slider)
       (%make-button-repr-control self widget-component-slider widget-repr-slider widget-repr-selection)
 
+      (jupyter-widgets:observe widget-repr-slider :value
+        (lambda (inst name type old-value new-value source)
+          (declare (ignore inst name type old-value new-value source))
+          (on-component-or-repr-slider-value-changed self)))
+
+      (jupyter-widgets:observe widget-component-slider :value
+        (lambda (inst name type old-value new-value source)
+          (declare (ignore inst name type old-value new-value source))
+          (on-component-or-repr-slider-value-changed self)))
+
+      (jupyter-widgets:link widget-repr-parameters :name
+                            widget-repr-name :value)
+
+      (jupyter-widgets:link widget-repr-parameters :repr-index
+                            widget-repr-slider :value)
+
+      (jupyter-widgets:link widget-repr-parameters :component-index
+                            widget-component-slider :value)
+
       (make-instance 'jupyter-widgets:v-box
-                     :children (list ;widget-repr-control-buttons
+                     :children (list widget-repr-control-buttons
+                                     widget-repr-add
                                      widget-component-dropdown
                                      widget-repr-name
                                      widget-repr-selection
@@ -657,36 +687,37 @@
                                                          :target "Widget"
                                                          :args (list new)))))))
 
-(defmethod %make-add-widget-repr ((self trajectory-player) component-slider)
-  (let ((dropdown-repr-name (make-instance 'dropdown
-					   :options *REPRESENTATION-NAMES*
-					   :value "cartoon"))
-	(repr-selection (make-instance 'text
-				       :value "*"
-				       :description ""))
-	(repr-button (make-instance 'button
-				    :description "Add"
-				    :tooltip "Add representation. You can also hit Enter in selection box.")))
-    (setf (layout repr-button) (make-instance 'jupyter-widgets:layout
-					      :width "auto"
-					      :flex "1 1 auto")
-	  (width (layout dropdown-repr-name)) +default-text-width+
-	  (width (layout repr-selection)) +default-text-width+)
-    (flet ((on-click-or-submit (button-or-text-area)
-	     (add-representation (%view self)
-				 :selection (strip (value repr-selection))
-				 :repr-type (value dropdown-repr-name)
-				 :component (value component-slider))
-	     (values)))
-      (on-click repr-button on-click-or-submit)
-      (on-submit repr-selection on-click-or-submit)
-      (let ((add-repr-box (make-instance 'hbox
-					 :children (list repr-button
-							   dropdown-repr-name
-							   repr-selection))))
-	(setf (%ngl-name add-repr-box) "add_repr_box")
-	add-repr-box))))
- 
+; p:_make_add_widget_repr
+(defun %make-add-widget-repr (self component-slider)
+  (let ((dropdown-repr-name (make-instance 'jupyter-widgets:dropdown
+                                           :layout (make-instance 'jupyter-widgets:layout
+                                                                  :width +default-text-width+)
+                                           :%options-labels (mapcar #'cdr +representation-names+)
+                                           :index (position-if (lambda (pair) (string= (cdr pair) "cartoon")) +representation-names+)))
+        (repr-selection (make-instance 'jupyter-widgets:text
+                                       :layout (make-instance 'jupyter-widgets:layout
+                                                              :width +default-text-width+)
+                                       :value "*"
+                                       :description ""))
+        (repr-button (make-instance 'jupyter-widgets:button
+                                    :description "Add"
+                                    :layout (make-instance 'jupyter-widgets:layout
+                                                           :width "auto"
+                                                           :flex "1 1 auto")
+                                    :tooltip "Add representation. You can also hit Enter in selection box.")))
+    (jupyter-widgets:on-button-click repr-button
+                                     (lambda (button)
+                                       (declare (ignore button))
+                                       (add-representation (%view self)
+                                                           (jupyter-widgets:widget-value dropdown-repr-name)
+                                                           :selection (strip (jupyter-widgets:widget-value repr-selection))
+                                                           :component (jupyter-widgets:widget-value component-slider))))
+
+    (setf (widget-repr-add self)
+          (make-instance 'jupyter-widgets:h-box
+                         :children (list repr-button
+                                         dropdown-repr-name
+                                                         repr-selection)))))
 
 (defun has-repr-p (representations name)
   (some
@@ -865,7 +896,6 @@
   (widget-theme self))
 
 (defun %make-general-box (self)
-  (jupyter:inform :info nil "trajectory-player %make-general-box")
   (unless (widget-general self)
     (let ((step-slide (make-instance 'int-slider
                                      :value (%step self) :min -100 :max 100 :description "step"
