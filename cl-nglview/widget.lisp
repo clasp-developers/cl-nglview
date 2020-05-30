@@ -2,7 +2,7 @@
 
 (jupyter:inform :info nil "Loading widget.lisp")
 
-(defparameter +frontend-version+ "1.2.0") ;; must match to js/package.json and js/src/widget_ngl.js
+(defparameter +frontend-version+ "2.7.5") ;; must match to js/package.json and js/src/widget_ngl.js
 
 (defparameter *excluded-callback-after-firing*
   (list "setUnSyncCamera" "setSelector" "setUnSyncFrame"
@@ -103,6 +103,18 @@
                         :type list
                         :initform nil
                         :trait :list)
+   (%synced-model-ids ; p:_synced_model_ids
+     :accessor %synced-repr-ids
+     :initform nil
+     :trait :list)
+   (%synced-repr-model-ids ; p:_synced_repr_model_ids
+     :accessor %synced-repr-model-ids
+     :initform nil
+     :trait :list)
+   (%ngl-view-id ; p:_ngl_view_id
+     :accessor %ngl-view-id
+     :initform nil
+     :trait :list)
    (%ngl-repr-dict :initarg :ngl-repr-dict
                    :accessor ngl-repr-dict
                    :trait :json
@@ -439,8 +451,10 @@
   (when (and (= (- new old) 1) (slot-boundp self '%ngl-component-ids))
     (setf (ngl-component-ids self) (append (ngl-component-ids self) (make-uuid t)))))
 
+; p:_handle_n_components_changed
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new source)
   (declare (ignore type name old source))
+  (jupyter:inform :info self "n-components ~A ~A" new (%ngl-component-names self))
   (when (player self)
     (when (widget-repr (player self))
       (let ((component-slider (widget-component-slider (player self))))
@@ -691,9 +705,7 @@
         (index 0))
     (loop for _ in repr-names
        do
-         (update-representation widget
-                                :component component
-                                :repr-index index
+         (update-representation widget component index
                                 :color-scheme color-scheme)
          (incf index)))
   (values))
@@ -710,7 +722,7 @@
                 :target "Representation"
                 :kwargs (append (list (cons "component_index" component)
                                       (cons "repr_index" repr-index))
-                                (camelize-dict parameters)))
+                                (dict-from-plist parameters)))
 
   (%update-ngl-repr-dict widget)
   (values))
@@ -763,7 +775,7 @@
 (defmethod %display-repr ((widget nglwidget) &key (component 0) (repr-index 0) (name nil))
   (let ((c (format nil "c~A" component))
         (r (write-to-string repr-index)))
-    (make-instance 'representation-control :view widget
+    (make-instance 'representation-control :%view widget
                    :component-index component
                    :repr-index repr-index
                    :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (ngl-repr-dict widget) c) r) "type"))))
@@ -968,6 +980,9 @@
         (setf (frame widget) 0)
         (if (< (frame widget) 0)
           (setf (frame widget) (1- (count widget))))))
+    ("updateIDs"
+      (setf (%ngl-view-id widget)
+            (jsown:val content "data")))
     ("repr_parameters"
       (let ((data (jsown:val content "data")))
         (when (and (player widget)
@@ -1099,7 +1114,7 @@ kwargs=kwargs2)
   (%update-component-auto-completion widget))
 
 (defmethod %load-data ((widget nglwidget) obj &key kwargs)
-  (jupyter:inform :info nil "entered %load-data")
+  (jupyter:inform :info nil "entered %load-data ~A" kwargs)
   (check-type kwargs list)
   (let* ((kwargs2 (camelize-dict kwargs))
          (is-url (is-url (make-instance 'file-manager :src obj)))

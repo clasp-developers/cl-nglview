@@ -35,7 +35,10 @@
    (%view
      :accessor %view
      :initarg :%view
-     :initform nil))
+     :initform nil)
+   (surface-layout
+     :accessor surface-layout
+     :initform (make-instance 'jupyter-widgets:layout)))
   (:metaclass jupyter-widgets:trait-metaclass)
   (:default-initargs
     :layout (make-instance 'jupyter-widgets:layout :width "auto" :flex-flow "row wrap")))
@@ -51,57 +54,35 @@
 (defmethod %on-parameters-changed (object name new old)
   (unless (%disabled-update-parameters object)
       (setf (parameters object)  new))
-  (update-representation (view object) :component (component-index object)
-			 :repr-index (repr-index object) &rest (parameters object))
+  (update-representation (%view object) (component-index object)
+			 (repr-index object) &rest (parameters object))
   (values))
 
 ; p:_on_name_changed
 (defmethod on-trait-change ((instance representation-control) (name (eql :name)) type old-value new-value source)
-  (declare (ignore type old-value source))
-  (let ((new-name new))
-    (if (string= new-name "surface")
-	(loop for kid across (children object)
-	   do
-	     (when (string= (%ngl-type kid) "surface")
-	       (setf (display (layout kid)) "flex")))
-	(loop for kid across (children object)
-	   do
-	     (if (string= (%ngl-type kid) "surface")
-		 (setf (display (layout kid)) "none")))))
-  (values))
+  (declare (ignore name type old-value source))
+  (setf (jupyter-widgets:display (surface-layout instance))
+        (if (equal "surface" new-value)
+          "flex"
+          "none")))
 
-;Observer for repr-index
-(defmethod %on-repr-index-changed (object name new old)
-  (let ((c-string (concatenate 'string "c" (write-to-string (component-index object))))
-	(r-string (write-to-string new)))
-    (%update object c-string r-string)))
+; p:_on_repr_index_changed
+(defmethod on-trait-change ((instance representation-control) (name (eql :repr-index)) type old-value new-value source)
+  (declare (ignore name type old-value new-value source))
+  (%update instance))
 
-;Observer for component-index
-(defmethod %on-component-index-changed (object name new old)
-  (let ((c-string (concatenate 'string "c" (write-to-string new)))
-	(r-string (write-to-string (repr-index object))))
-    (%update self c-string r-string)))
+; p:_on_component_index_changed
+(defmethod on-trait-change ((instance representation-control) (name (eql :component-index)) type old-value new-value source)
+  (declare (ignore name type old-value new-value source))
+  (%update instance))
 
-(defmethod %update ((self representation-control) c-string r-string)
-  (multiple-value-bind (name %repr-dict)
-      (%get-name-and-repr-dict self c-string r-string)
-    (setf (name self) name (%disable-update-parameters self) t)
-    (loop for kid across (children self)
-       do
-	 (setf desc (camelize (ngl-description kid))))
-    (error "Implement me!1 %update from representation.lisp")
-    (setf (%disable-update-parameters self) nil)))
-#|
-    def _update(self, c_string, r_string):
-        name, _repr_dict = self._get_name_and_repr_dict(c_string, r_string)
-        self.name = name
-        self._disable_update_parameters = True
-        for kid in self.children:
-            desc = py_utils._camelize(kid._ngl_description)
-            if desc in _repr_dict:
-                kid.value = _repr_dict.get(desc)
-        self._disable_update_parameters = False
-|#
+; p:_update
+(defun %update (instance)
+  (multiple-value-bind (name repr-dict)
+                       (%get-name-and-repr-dict instance)
+    (setf (name instance) name)))
+  ;     (setf (jupyter-widgets:widget-value opacity-slider)
+  ;           (jsown:val repr-dict "opacity")))))
 
 (defun make-representation-toggle-button (instance name description value)
   (let ((widget (make-instance 'jupyter-widgets:toggle-button
@@ -109,6 +90,12 @@
                                :description description
                                :style (make-instance 'jupyter-widgets:description-style
                                                       :description-width +default-text-width+))))
+    (jupyter-widgets:observe
+      widget :value
+      (lambda (inst nm type old-value new-value source)
+        (declare (ignore inst nm type old-value source))
+        (update-representation (%view instance) (component-index instance) (repr-index instance)
+                               name new-value)))
     ; (jupyter-widgets:observe widget :value
     ;   (lambda (widget type nm old-value new-value source)
     ;     (declare (ignore widget type nm old-value source))
@@ -128,6 +115,7 @@
                                                       :width +default-slider-width+)
                                :style (make-instance 'jupyter-widgets:slider-style
                                                       :description-width +default-text-width+))))
+
     ; (jupyter-widgets:observe widget :index
     ;   (lambda (widget type nm old-value new-value source)
     ;     (declare (ignore widget type nm old-value source))
@@ -140,7 +128,7 @@
     ;                 option-labels :test #'string=))))
     widget))
 
-(defun make-representation-label-dropdown (instance name description value option-labels)
+(defun make-representation-label-dropdown (instance name description value option-labels &optional names)
   (let ((widget (make-instance 'jupyter-widgets:dropdown
                                :index (position value option-labels :test #'string=)
                                :%options-labels option-labels :description description
@@ -148,6 +136,19 @@
                                                       :width +default-slider-width+)
                                :style (make-instance 'jupyter-widgets:slider-style
                                                       :description-width +default-text-width+))))
+    (when names
+      (jupyter-widgets:observe instance :name
+        (lambda (inst nm type old-value new-value source)
+          (declare (ignore inst nm type old-value source))
+          (setf (jupyter-widgets:widget-disabled widget)
+                (not (member new-value names :test #'equal))))))
+
+    (jupyter-widgets:observe
+      widget :value
+      (lambda (inst nm type old-value new-value source)
+        (declare (ignore inst nm type old-value source))
+        (update-representation (%view instance) (component-index instance) (repr-index instance)
+                               name new-value)))
     ; (jupyter-widgets:observe widget :index
     ;   (lambda (widget type nm old-value new-value source)
     ;     (declare (ignore widget type nm old-value source))
@@ -160,7 +161,7 @@
     ;                 option-labels :test #'string=))))
     widget))
 
-(defun make-representation-slider (instance name description value min max inc)
+(defun make-representation-slider (instance name description value min max inc &optional names)
   (let ((widget (make-instance (if (floatp inc) 'jupyter-widgets:float-slider 'jupyter-widgets:int-slider)
                                :value value
                                :min min :max max :step inc :description description
@@ -168,45 +169,68 @@
                                                       :width +default-slider-width+)
                                :style (make-instance 'jupyter-widgets:slider-style
                                                       :description-width +default-text-width+))))
-    ; (jupyter-widgets:observe widget :value
-    ;   (lambda (widget type nm old-value new-value source)
-    ;     (declare (ignore widget type nm old-value source))
-    ;     (setf (parameters (%view instance)) (list name new-value))))
-    ; (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
-    ;   (lambda (view type nm old-value new-value source)
-    ;     (declare (ignore view type nm old-value source))
-    ;     (setf (jupyter-widgets:widget-value widget)
-    ;       (getf new-value name (jupyter-widgets:widget-value widget)))))
+    (when names
+      (jupyter-widgets:observe instance :name
+        (lambda (inst nm type old-value new-value source)
+          (declare (ignore inst nm type old-value source))
+          (setf (jupyter-widgets:widget-disabled widget)
+                (not (member new-value names :test #'equal))))))
+
+    (jupyter-widgets:observe
+      widget :value
+      (lambda (inst nm type old-value new-value source)
+        (declare (ignore inst nm type old-value source))
+        (update-representation (%view instance) (component-index instance) (repr-index instance)
+                               name new-value)))
+
+    (jupyter-widgets:observe
+      instance '(:repr-index :component-index)
+      (lambda (inst type nm old-value new-value source)
+        (declare (ignore inst type nm old-value source))
+        (jupyter:inform :info inst "change ~A ~A" name new-value)
+        (multiple-value-bind (n repr-dict)
+                             (%get-name-and-repr-dict instance)
+          (setf (jupyter-widgets:widget-value widget)
+                (jsown:val repr-dict name)))))
+
     widget))
 
 
 ; p:_make_widget
 (defmethod initialize-instance :after ((instance representation-control) &rest initargs)
   (declare (ignore initargs))
-  (with-slots (component-index repr-index) instance
-    (let ((c-string (concatenate 'string "c" (write-to-string (component-index instance))))
-          (r-string (write-to-string (repr-index instance))))
+  ; (with-slots (opacity-slider)
+  ;             instance
+  ;   (setf (jupyter-widgets:widget-children instance)
+  ;         (list opacity-slider))
+  ;   (jupyter-widgets:observe
+  ;     opacity-slider :value
+  ;     (lambda (inst name type old-value new-value source)
+  ;       (declare (ignore inst name type old-value source))
+  ;       (update-representation (%view instance) (component-index instance) (repr-index instance)
+  ;                              :opacity new-value)))))
+  ; (with-slots (component-index repr-index) instance
+  ;   (let ((c-string (concatenate 'string "c" (write-to-string (component-index instance))))
+  ;         (r-string (write-to-string (repr-index instance))))
       (setf (jupyter-widgets:widget-children instance)
             (list (make-representation-slider instance :opacity "Opacity" 1 0 1 0.1)
                   (make-representation-label-dropdown instance :color-scheme "Color Scheme" " " +color-schemes+)
                   (make-representation-label-dropdown instance :assembly "Assembly" "default" +assembly-list+)
-                  (make-representation-slider instance :probe-radius "Probe Radius" 1.4 0 5 0.1)
+                  (make-representation-slider instance :probe-radius "Probe Radius" 1.4 0 5 0.1 '("surface"))
                   (make-representation-slider instance :isolevel "Isolevel" 2 0 10 0.1)
-                  (make-representation-slider instance :smooth "Opacity" 2 0 10 1)
-                  (make-representation-label-dropdown instance :surface-types "Surface Types" "smooth" +surface-types+)
-                  (make-representation-slider instance :box-size "Box Size" 10 0 100 2)
+                  (make-representation-slider instance :smooth "Opacity" 2 0 10 1 '("surface"))
+                  (make-representation-label-dropdown instance :surface-types "Surface Types" "smooth" +surface-types+ '("surface"))
+                  (make-representation-slider instance :box-size "Box Size" 10 0 100 2 '("surface"))
                   (make-representation-slider instance :cutoff "Cutoff" 0 0 100 0.1)
-                  (make-representation-toggle-button instance :wireframe "Wireframe" nil))))))
+                  (make-representation-toggle-button instance :wireframe "Wireframe" nil))))
 
-(defmethod %get-name-and-repr-dict ((self representation-control) c-string r-string)
-  (flet ((read-dict (key dict)
-	   (multiple-value-bind (value present-p)
-	       (gethash key dict)
-	     (if present-p
-		 value
-		 (return-from %get-name-and-repr-dict
-		   (values "" (make-hash-table)))))))
-    (let* ((repr-dict (%repr-dict (%view self)))
-	   (inner (read-dict r-string (read-dict c-string %repr-dict))))
-      (values (read-dict "name" inner)
-	      (read-dict "parameters" inner)))))
+; p:_get_name_and_repr_dict
+(defun %get-name-and-repr-dict (instance)
+  (handler-case
+      (let ((dict (jsown:val (jsown:val (%ngl-repr-dict (%view instance))
+                                        (format nil "c~A" (component-index instance)))
+                             (write-string (repr-index instance)))))
+        (values (jsown:val dict "name")
+                (jsown:val dict "parameters")))
+    (error () (values '(:obj) '(:obj)))))
+
