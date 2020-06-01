@@ -24,14 +24,18 @@
   (aref (ngl-component-ids (%view self)) (%index self)))
 
 (defmethod add-representations ((self ComponentViewer) repr-type &optional (selection "all") &rest kwargs &key &allow-other-keys)
-  (setf (aref kwargs "component") (%index self))
+; TWB: Seems broken
+;  (setf (aref kwargs "component") (%index self))
   (add-representation (%view self) :repr-type repr-type :selection selection kwargs))
 
 
 (defmethod %borrow-attribute ((self ComponentViewer) view attributes &key (trajectory-atts nil))
+  (declare (ignore trajectory-atts))
   (let ((traj (%get-traj-by-id view (id self))))
+    (declare (ignore traj))
     (loop for attname in attributes
        do
-         (let ((view-att nil)))))
+         (let ((view-att nil))
+           (declare (ignore view-att)))))
   (error "Help me!!!"))
 

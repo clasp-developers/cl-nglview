@@ -1,6 +1,6 @@
 (in-package :nglv)
 
-(cl-jupyter:logg 2 "adaptor.lisp~%")
+(jupyter:inform :info nil "adaptor.lisp")
 ;;;Register backend is something python does but we don't need
 #|
 (defclass register-backend ()
@@ -72,15 +72,15 @@
 
 (defmethod get-structure-string ((self PdbIdStructure))
   (let ((url (concatenate 'string "http://files.rcsb.org/view/" (pdbid self) ".cif")))
-    (cl-jupyter:logg 2 "About to get-structure-string from ~s~%" url)
+    (jupyter:inform :info nil "About to get-structure-string from ~s" url)
     (destructuring-bind (response header stream)
 	(trivial-http:http-get url)
       (let ((contents (with-output-to-string (sout)
 			(trivial-http::copy-stream stream sout))))
-	(cl-jupyter:logg 2 "Read url: ~s~%" url)
-	(cl-jupyter:logg 2 "     response: ~a~%" response)
-	(cl-jupyter:logg 2 "       header: ~s~%" header)
-	(cl-jupyter:logg 2 "      contents are not show - may be too long~%")
+	(jupyter:inform :info nil "Read url: ~s" url)
+	(jupyter:inform :info nil "     response: ~a" response)
+	(jupyter:inform :info nil "       header: ~s" header)
+	(jupyter:inform :info nil "      contents are not show - may be too long")
 	(close stream)
 	contents))))
 
@@ -116,7 +116,7 @@
    (ext :accessor ext :initform nil) ;HELP!!! Please help me
    (params :accessor params :type list :initform nil)
    (trajectory :accessor trajectory :initform nil)
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self SimpletrajTrajectory) &key)
   (setf (gethash "simpletraj" *BACKENDS*) 'SimpletrajTrajectory)
@@ -145,7 +145,7 @@
 	       :initform nil)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self MDTrajTrajectory) &key)
   (setf (gethash "mdtraj" *BACKENDS*) 'MDTrajTrajectory)
@@ -173,7 +173,7 @@
 	       :initform nil)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self PyTrajTrajectory) &key)
   (setf (gethash "pytraj" *BACKENDS*) 'PyTrajTrajectory)
@@ -202,8 +202,8 @@
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
    (xyz :accessor xyz :initform nil)
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))
-   (only-save-1st-model :accessor only-save-1st-model :type bool :initform :true)))
+   (id :accessor id :initform (jupyter:make-uuid))
+   (only-save-1st-model :accessor only-save-1st-model :type bool :initform t)))
 
 (defmethod initialize-instance :after ((self ParmEdTrajectory) &key)
   (setf (gethash "parmed" *BACKENDS*) 'ParmEdTrajectory)
@@ -253,7 +253,7 @@ class ParmEdTrajectory(Trajectory, Structure):
   ((atomgroup :initarg :atomgroup :accessor atomgroup)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self MDAnalysisTrajectory) &key)
   (setf (gethash "MDAnalysis" *BACKENDS*) 'MDAnalysisTrajectory)
@@ -295,7 +295,7 @@ class ParmEdTrajectory(Trajectory, Structure):
   ((mol :initarg :mol :accessor mol)
    (ext :accessor ext :initform "pdb")
    (params :accessor params :type list :initform ())
-   (id :accessor id :initform (format nil "~W" (uuid:make-v4-uuid)))))
+   (id :accessor id :initform (jupyter:make-uuid))))
 
 (defmethod initialize-instance :after ((self HTMDTrajectory) &key)
   (setf (gethash "htmd" *BACKENDS*) 'HTMDTrajectory)

@@ -4,884 +4,781 @@
   (string-trim #(#\Space #\Newline #\Return) string))
 
 (defun javascript-true-p (v)
-  (when (eq v :true)
+  (when (eq v t)
     t)
   nil)
 
-(defclass trajectory-player (cljw::domwidget)
-  ((%step :initarg :%step :accessor %step
-	 :type integer
-	 :initform 1 ;Original default is 0 but init makes it 1
-	 :metadata (:sync t
-			  :json-name "step"))
-   (sync-frame :initarg :sync-frame :accessor sync-frame
-	       :type boolean
-	       :initform nil ;Original default is true but init makes it false
-	       :observers (update-sync-frame)
-	       :metadata (:sync t
-				:json-name "sync_frame"))
-   (interpolate :initarg :interpolate :accessor interpolate
-		:type bool
-		:initform :false
-		:metadata (:sync t
-				 :json-name "interpolate"))
-   (delay :initarg :delay :accessor delay
-	  :type float
-	  :initform 100.0 ;Original default is 0.0 but init makes it 100
-	  :observers (%update-delay)
-	  :metadata (:sync t
-			   :json-name "delay"))
-   (%parameters :initarg :parameters :accessor trajectory-player-parameters
-	       :type cljw:dict
-	       :initform nil
-	       :observers (update-parameters)
-	       :metadata (:sync t
-				:json-name "parameters"))
-   (iparams :initarg :iparams :accessor iparams
-	    :type cljw:dict
-	    :initform nil
-	    :metadata (:sync t
-			     :json-name "iparams"))
-   (%interpolation-t :initarg :%interpolation-t :accessor %interpolation-t
-		     :type float
-		     :initform 0.5 ;Original default is nil but init makes it 0.5
-		     :observers (%interpolation-t-changed)
-		     :metadata (:sync t
-				      :json-name "_interpolation_t"))
-   (%iterpolation-type :initarg :%iterpolation-type :accessor %iterpolation-type
-			:type unicode
-			:initform (cljw:unicode "linear") ;Original default is "" but init makes it "linear"
-			:metadata (:sync t
-					 :json-name "_iterpolation_type"
-					 :caseless-str-enum '("linear" "spline")
-					 :help "either linear or spline"))
-   (spin :initarg :spin :accessor spin
-	 :type bool
-	 :initform :false
-	 :observers (on-spin-changed)
-	 :metadata (:sync t
-			  :json-name "spin"))
-   (%spin-x :initarg :%spin-x :accessor %spin-x
-	    :type integer
-	    :initform 1
-	    :observers (on-spin-x-changed)
-	    :metadata (:sync t
-			     :json-name "_spin_x"))
-   (%spin-y :initarg :%spin-y :accessor %spin-y
-	    :type integer
-	    :initform 0
-	    :observers (on-spin-y-changed)
-	    :metadata (:sync t
-			     :json-name "_spin_y"))
-   (%spin-z :initarg :%spin-z :accessor %spin-z
-	    :type integer
-	    :initform 0
-	    :observers (on-spin-z-changed)
-	    :metadata (:sync t
-			     :json-name "_spin_z"))
-   (%spin-speed :initarg :%spin-speed :accessor %spin-speed
-		:type float
-		:initform 0.005
-		:metadata (:sync t
-				 :json-name "_spin_speed"))
-   (camera :initarg :camera :accessor trajectory-player-camera
-	   :type unicode
-	   :initform (cljw:unicode "perspective")
-	   :observers (on-camera-changed)
-	   :metadata (:sync t
-			    :json-name "camera"
-			    :caseless-str-enum '("perspective" "orthographic")
-			    :help "Options: perspective or orthographic"))
-   (%render-params :initarg :%render-params :accessor %render-params
-		   :type cljw:dict
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "_render_params"))
-   (%real-time-update :initarg :%real-time-update :accessor %real-time-update
-		      :type bool
-		      :initform :false
-		      :metadata (:sync t
-				       :json-name "_real_time_update"))
-   ;;gap in python code
-   (widget-tab :initarg :widget-tab :accessor widget-tab
-	       :initform nil
-	       :metadata (:sync t
-				:json-name "widget_tab"))
-   (widget-repr :initarg :widget-repr :accessor widget-repr
-		:initform nil
-		:metadata (:sync t
-				 :json-name "widget_repr"))
-   (widget-repr-parameters :initarg :widget-repr-parameters :accessor widget-repr-parameters
-			   :initform nil
-			   :metadata (:sync t
-					   :json-name "widget_repr_parameters"))
-   (widget-quick-repr :initarg :widget-quick-repr :accessor widget-quick-repr
-		      :initform nil
-		      :metadata (:sync t
-				       :json-name "widget_quick_repr"))
-   (widget-general :initarg :widget-general :accessor widget-general
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_general"))
-   (widget-picked :initarg :widget-picked :accessor widget-picked
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_picked"))
-   (widget-preference :initarg :widget-preference :accessor widget-preference
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_preference"))
-   (widget-extra :initarg :widget-extra :accessor widget-extra
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_extra"))
-   (widget-theme :initarg :widget-theme :accessor widget-theme
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_theme"))
-   (widget-help :initarg :widget-help :accessor widget-help
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_help"))
-   (widget-export-image :initarg :widget-export-image :accessor widget-export-image
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_export_image"))
-   (widget-component-slider :initarg :widget-component-slider :accessor widget-component-slider
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_component_slider"))
-   (widget-repr-slider :initarg :widget-repr-slider :accessor widget-repr-slider
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_slider"))
-   (widget-repr-choices :initarg :widget-repr-choices :accessor widget-choices
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_choices"))
-   (widget-repr-control-buttons :initarg :widget-repr-control-buttons :accessor widget-repr-control-buttons
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_control_buttons"))
-   (widget-repr-add :initarg :widget-repr-add :accessor widget-repr-add
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_add"))
-   (widget-accordion-repr-parameters :initarg :widget-accordion-repr-parameters :accessor widget-accordion-repr-parameters
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_accordion_repr_parameters"))
-   (widget-repr-parameters-dialog :initarg :widget-repr-parameters-dialog :accessor widget-repr-parameters-dialog
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_parameters_dialog"))
-   (widget-repr-name :initarg :widget-repr-name :accessor widget-repr-name
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_repr_name"))
-   (widget-component-dropdown :initarg :widget-component-dropdown :accessor widget-component-dropdown
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_component_dropdown"))
-   (widget-drag :initarg :widget-drag :accessor widget-drag
-		   :initform nil
-		   :metadata (:sync t
-				    :json-name "widget_drag"))
-   ;;;include the other parameters found in the __init__ function
-  (%view :initarg :%view :accessor %view
-	:initform nil)
-  (min-delay :initarg :min-delay :accessor min-delay
-	     :type integer
-	     :initform 40)
-  (%widget-names :initarg :widget-names :accessor widget-names
-		 :type list
-		 :initform ()))
-  (:metaclass traitlets:traitlet-class))
-   
+(defclass trajectory-player (jupyter-widgets:has-traits)
+  ((%step
+     :accessor %step
+     :initarg :step
+     :initform 1 ;Original default is 0 but init makes it 1
+     :type integer
+     :trait :int)
+   (sync-frame
+     :accessor sync-frame
+     :initarg :sync-frame
+     :initform nil ;Original default is true but init makes it false
+     :type boolean
+     :trait :bool)
+   (interpolate
+     :accessor interpolate
+     :initform nil
+     ; :type bool
+     :trait :bool)
+   (delay
+     :accessor delay
+     :initarg :delay
+     :initform 100.0 ;Original default is 0.0 but init makes it 100
+     :type float
+     :trait :float)
+   (parameters
+     :accessor parameters
+     :initform nil
+     :trait :dict)
+   (iparams
+     :accessor iparams
+     :initform nil
+     :trait :dict)
+   (%interpolation-t
+     :accessor %interpolation-t
+     :initform 0.5 ;Original default is nil but init makes it 0.5
+     :type float
+     :trait :float)
+   (%iterpolation-type
+     :accessor %iterpolation-type
+     :initform "linear" ;Original default is "" but init makes it "linear"
+     :trait :unicode) ; TODO: Add validator for enum ("linear" "spline")
+   (spin
+     :accessor spin
+     :initform nil
+     :trait :bool)
+   (%spin-x
+     :accessor %spin-x
+     :initform 1
+     :type integer
+     :trait :int)
+   (%spin-y
+     :accessor %spin-y
+     :initform 0
+     :type integer
+     :trait :int)
+   (%spin-z
+     :accessor %spin-z
+     :initform 0
+     :type integer
+     :trait :int)
+   (%spin-speed
+     :accessor %spin-speed
+     :initform 0.005
+     :type float
+     :trait :float)
+   (camera
+     :accessor camera
+     :initform "perspective"
+     :trait :unicode) ; TODO: Add validator for enum ("perspective" "orthographic")
+   (%render-params
+     :accessor %render-params
+     :initform nil
+     :trait :dict)
+   (%real-time-update
+     :accessor %real-time-update
+     :initform nil
+     :trait :bool)
+   (widget-tab
+     :accessor widget-tab
+     :initform nil
+     :trait :widget)
+   (widget-repr
+     :accessor widget-repr
+     :initform nil
+     :trait :widget)
+   (widget-repr-parameters
+     :accessor widget-repr-parameters
+     :initform nil
+     :trait :dict)
+   (widget-quick-repr
+     :accessor widget-quick-repr
+     :initform nil
+     :trait :widget)
+   (widget-general
+     :accessor widget-general
+     :initform nil
+     :trait :widget)
+   (widget-picked
+     :accessor widget-picked
+     :initform nil
+     :trait :widget)
+   (widget-preference
+     :accessor widget-preference
+     :initform nil
+     :trait :widget)
+   (widget-extra
+     :accessor widget-extra
+     :initform nil
+     :trait :widget)
+   (widget-help
+     :accessor widget-help
+     :initform nil
+     :trait :widget)
+   (widget-export-image
+     :accessor widget-export-image
+     :initform nil
+     :trait :widget)
+   (widget-component-slider
+     :accessor widget-component-slider
+     :initform nil
+     :trait :widget)
+   (widget-repr-slider
+     :accessor widget-repr-slider
+     :initform nil
+     :trait :widget)
+   (widget-repr-selection
+     :accessor widget-repr-selection
+     :initform nil
+     :trait :widget)
+   (widget-repr-choices
+     :accessor widget-choices
+     :initform nil
+     :trait :widget)
+   (widget-repr-control-buttons
+     :accessor widget-repr-control-buttons
+     :initform nil
+     :trait :widget)
+   (widget-repr-add
+     :accessor widget-repr-add
+     :initform nil
+     :trait :widget)
+   (widget-accordion-repr-parameters
+     :accessor widget-accordion-repr-parameters
+     :initform nil
+     :trait :dict)
+   (widget-repr-parameters-dialog
+     :accessor widget-repr-parameters-dialog
+     :initform nil
+     :trait :widget)
+   (widget-repr-name
+     :accessor widget-repr-name
+     :initform nil
+     :trait :widget)
+   (widget-component-dropdown
+     :accessor widget-component-dropdown
+     :initform nil
+     :trait :widget)
+   (%view
+     :accessor %view
+     :initarg :%view
+     :initform nil)
+   (min-delay
+     :accessor min-delay
+     :initarg :min-delay
+     :initform 40
+     :type integer)
+   (%widget-names
+     :accessor widget-names
+     :initarg :widget-names
+     :type list
+     :initform nil))
+  (:metaclass jupyter-widgets:trait-metaclass))
+
 (defmethod initialize-instance :after ((player trajectory-player) &key)
+  ; The python code saves all widget field names into %widget-names then doesn't use that
   (setf (iparams player) (list (cons "t" (%interpolation-t player))
-			       (cons "step" 1)
-			       (cons "type" (%iterpolation-type player)) ))
-  (setf (%render-params player) (list (cons "factor" 4)
-                                      (cons "antialias" :true)
-                                      (cons "trim" :false)
-                                      (cons "transparent" :false)))
-  ;; the following doesn't appear to be used anywhere correct
-  ;; https://github.com/drmeister/spy-ipykernel/blob/master/nglview/player.py#L80
-  ;; self._widget_names = [w for w in dir(self) if w.startswith('wiget_')]
-  player
-  )
+                               (cons "step" 1)
+                               (cons "type" (%iterpolation-type player)))
+        (%render-params player) (list (cons "factor" 4)
+                                      (cons "antialias" t)
+                                      (cons "trim" nil)
+                                      (cons "transparent" nil)))
+  player)
 
-#|
- self._widget_names = [w for w in dir(self) if w.startswith('wiget_')]
-        self.observe(self._on_widget_built, names=['widget_repr_parameters',
-            'widget_repr',
-            'widget_preference'])
-|#
-
-
-(defmethod %update-padding ((self trajectory-player) &optional (padding *DEFAULT-PADDING*))
-  (with-slots (widget-general widget-repr widget-preference widget-repr-parameters widget-help widget-extra wiget-picked) self
+; p:_update_padding
+(defun %update-padding (self &optional (padding +default-padding+))
+  (with-slots (widget-general widget-repr widget-preference widget-repr-parameters widget-help widget-extra widget-picked) self
     (let ((widget-collection (list widget-general widget-repr widget-preference widget-repr-parameters widget-help widget-extra widget-picked)))
       (dolist (widget widget-collection)
-        (setf (padding (layout widget)) padding)))))
+        (when widget
+         (setf (padding (layout widget)) padding))))))
 
-(defmethod %create-all-widgets ((self trajectory-player))
-  (if (not (widget-tab self))
-      (setf (widget-tab self) (%display self)))
-  (let ((old-index (selected-index (widget-tab self)))
+; p:_create_all_widgets
+(defun %create-all-widgets (self)
+  (setf (widget-tab self) (jupyter-widgets:%display self))
+  (let ((old-index (jupyter-widgets:widget-selected-index (widget-tab self)))
         (new-index 0))
-    (loop for (index) across (children (widget-tab self))
+    (loop for (index) across (jupyter-widgets:widget-children (widget-tab self))
        do
-         (setf (selected-index (widget-tab self)) new-index)
+         (setf (jupyter-widgets:widget-selected-index (widget-tab self)) new-index)
          (incf new-index))
-    (setf (selected-index (widget-tab self)) old-index)))
+    (setf (jupyter-widgets:widget-selected-index (widget-tab self)) old-index)))
 
-(defmethod smooth ((self trajectory-player))
+; p:smooth
+(defun smooth (self)
   (setf (interpolate self) t))
 
-(@observe camera on-camera-changed)
-(defmethod on-camera-changed (object name new old)
+; p:on_camera_changed
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :camera)) old new source)
   (let ((camera-type new))
-    (when (slot-boundp object 'view)
-      (%remote-call (%view object) "setParameters" :target "Stage" :kwargs (cljw:dict (cons "cameraType" camera-type))))))
+    (when (slot-boundp object '%view)
+      (%remote-call (%view object) "setParameters" :target "Stage" :kwargs (list (cons "cameraType" camera-type))))))
 
+; p:frame
 (defmethod frame ((self trajectory-player))
   (frame (%view self)))
 
+; p:frame.setter
 (defmethod (setf frame) (value (self trajectory-player))
-  (setf (frame (view self)) value))
+  (setf (frame (%view self)) value))
 
-(@observe sync-frame update-sync-frame)
-(defmethod update-sync-frame (object name new old)
-  (when (slot-boundp object 'view)
+; p:update_sync_frame
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :sync-frame)) old new source)
+  (declare (ignore type name source))
+  (when (slot-boundp object '%view)
     (if new
-        (%set-sync-frame (view object))
-        (%set-unsync-frame (view object)))))
+        (%set-sync-frame (%view object))
+        (%set-unsync-frame (%view object)))))
 
-(@observe delay %update-delay)
-(defmethod %update-delay (object name new old)
-  (when (slot-boundp object 'view)
-    (%set-delay (view object) new)))
+; p:_update_delay
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :delay)) old new source)
+  (when (slot-boundp object '%view)
+    (%set-delay (%view object) new)))
 
-(@observe parameters update-parameters)
-(defmethod update-parameters (object name params old)
+; p:update_parameters
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :parameters)) old new source)
   (when (slot-boundp object 'sync-frame)
-    (setf (sync-frame object) (get params "sync_frame" (sync-frame object))))
+    (setf (sync-frame object) (get new "sync_frame" (sync-frame object))))
   (when (slot-boundp object 'delay)
-    (setf (delay object) (get params "delay" (delay object))))
+    (setf (delay object) (get new "delay" (delay object))))
   (when (slot-boundp object '%step)
-    (setf (%step object) (get params "step" (%step object)))))
+    (setf (%step object) (get new "step" (%step object)))))
 
-(@observe %interpolation-t %interpolation-t-changed)
-(defmethod %interpolation-t-changed (object name new old)
-  (let ((entry ([] (iparams object) "t")))
+; p:_interpolation_t_changed
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%interpolation-t)) old new source)
+  (let ((entry (jupyter:json-getf (iparams object) "t")))
     (if entry
         (setf (cdr entry) new)
         (setf (iparams object) (cons "t" new)))))
 
-(@observe spin on-spin-changed)
-(defmethod on-spin-changed (object name new old)
-  (when (slot-boundp object 'view)
-    (if (javascript-true-p (spin object))
-        (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))
-        (%set-spin (view object) nil nil))))
+; p:_on_spin_changed
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :spin)) old new source)
+  (when (slot-boundp object '%view)
+    (if (spin object)
+      (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))
+      (%set-spin (%view object) :null :null))))
 
-(@observe %spin-x on-spin-x-changed)
-(defmethod on-spin-x-changed (object name new old)
-  (when (slot-boundp object 'view)
-    (if (javascript-true-p (spin object))
-        (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
+; p:_on_spin_x_changed
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-x)) old new source)
+  (declare (ignore type name))
+  (when (and (slot-boundp object '%view)
+             (spin object))
+    (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))))
 
-(@observe %spin-y on-spin-y-changed)
-(defmethod on-spin-y-changed (object name new old)
-  (when (slot-boundp object 'view)
-    (if (javascript-true-p (spin object))
-        (%set-spin (view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object)))))
+; p:_on_spin_y_changed
+(defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%spin-y)) old new source)
+  (declare (ignore type name))
+  (when (and (slot-boundp object '%view)
+             (spin object))
+    (%set-spin (%view object) (list (%spin-x object) (%spin-y object) (%spin-z object)) (%spin-speed object))))
 
-(@observe %spin-z on-spin-z-changed)
-(defmethod on-spin-z-changed ((self trajectory-player) name new old)
-  (when (slot-boundp self 'view)
-    (if (javascript-true-p (spin self))
-        (%set-spin (view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self)))))
+; p:_on_spin_z_changed
+(defmethod jupyter-widgets:on-trait-change ((self trajectory-player) type (name (eql :%spin-z)) old new source)
+  (declare (ignore type name))
+  (when (and (slot-boundp self '%view)
+             (spin self))
+    (%set-spin (%view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
 
-(@observe %spin-speed on-spin-speed-changed)
-(defmethod on-spin-speed-changed ((self trajectory-player) name new old)
-  (if (javascript-true-p (spin self))
-      (%set-spin (view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
+; p:_on_spin_speed_changed
+(defmethod jupyter-widgets:on-trait-change ((self trajectory-player) type (name (eql :%spin-speed)) old new source)
+  (declare (ignore type name))
+  (when (and (slot-boundp self '%view)
+             (spin self))
+    (%set-spin (%view self) (list (%spin-x self) (%spin-y self) (%spin-z self)) (%spin-speed self))))
 
-(defmethod %display ((self trajectory-player))
-  (let* ((box-factory (list
-		       (cons (%make-general-box self) "General")
-		       (cons (%make-widget-repr self) "Representation")
-		       (cons (%make-widget-preference self) "Preference")
-		       (cons (%make-theme-box self) "Theme")
-		       (cons (%make-extra-box self) "Extra")
-		       (cons (%make-hide-tab-with-place-proxy self) "Hide")
-		       (cons (%show-website self) "Help")))
-	 (tab (%make-delay-tab box-factory :selected-index 0)))
-    (setf (align-self (layout tab)) "center" (align-items (layout tab)) "stretch")
-    (setf (widget-tab self) tab)
-    (widget-tab self)))
+; p:_display
+(defmethod jupyter-widgets:%display ((self trajectory-player) &rest args &key &allow-other-keys)
+  (declare (ignore args))
+  (jupyter:inform :info nil "trajectory-player %display")
+  (with-slots (widget-tab) self
+    (unless widget-tab
+      (setf widget-tab
+            (make-instance 'jupyter-widgets:tab
+                           :layout (make-instance 'jupyter-widgets:layout
+                                                  :width "100%"
+                                                  :align-self "center"
+                                                  :align-items "stretch")
+                           :children (list (%make-general-box self)
+                                           (%make-widget-repr self)
+                                           (%make-widget-preference self)
+                                           (%make-spin-box self)
+                                           (%make-widget-picked self)
+                                           (%make-repr-playground self)
+                                           (%make-export-image-widget self)
+                                           (%make-command-box self))
+                           ;(%make-extra-box self))
+                           :%titles '("General"
+                                      "Representation"
+                                      "Preference"
+                                      "Spin"
+                                      "Picked"
+                                      "Quick"
+                                      "Image"
+                                      "Command")
+                           ;"Extra")
+                           :selected-index 0)))
+    widget-tab))
 
-(defmethod %make-widget-tab ((self trajectory-player))
-  (%display self))
+; p:_make_widget_tab
+(defun %make-widget-tab (self)
+  (jupyter-widgets:%display self))
 
-(defmethod %make-hide-tab-with-place-proxy ((self trajectory-player))
-  (apply #'make-instance 'cljw::Box (%place-proxy (view self))))
+; p:_make_button_center
+(defun %make-button-center (self)
+  (make-instance 'jupyter-widgets:button
+                 :description " Center"
+                 :icon "bullseye"
+                 :on-click (list (lambda (button)
+                             (declare (ignore button))
+                             (center (%view self))))))
 
-(defmethod %make-button-center ((self trajectory-player))
-  (let ((button (make-instance 'cljw::button :description " Center" :icon "fa-bullseye")))
-    (flet ((click (button)
-	     (center (view self))))
-      (cljw::on-click button #'click)
-      button)))
-  ;;I need to figure out how to do @button.on_click to register this as the on_click method
- #|
-    def _make_button_center(self):
-        button = Button(description=' Center', icon='fa-bullseye')
-        @button.on_click
-        def on_click(button):
-            self._view.center()
-        return button((NGLV::CHILDREN T-SLIDERS (LIST NGLV::RESET-BUTTON (NGLV::CHILDREN (NGLV::MAKE-WIDGET-BOX))))
- |#
+(defun make-preference-toggle-button (instance name description value)
+  (let ((widget (make-instance 'jupyter-widgets:toggle-button
+                               :value value
+                               :description description
+                               :style (make-instance 'jupyter-widgets:description-style
+                                                      :description-width +default-text-width+))))
+    (jupyter-widgets:observe widget :value
+      (lambda (widget type nm old-value new-value source)
+        (declare (ignore widget type nm old-value source))
+        (setf (parameters (%view instance)) (list name (if new-value :true :false)))))
+    (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+      (lambda (view type nm old-value new-value source)
+        (declare (ignore view type nm old-value source))
+        (setf (jupyter-widgets:widget-value widget)
+          (getf new-value name (jupyter-widgets:widget-value widget)))))
+    widget))
 
-(defmethod %make-button-theme ((self trajectory-player))
-  (let ((button (make-instance 'Button :description "Oceans16")))
-    (error "Theme-ifying Jupyter notebooks is in experimental phase and should not be trusted.")
-  button))
- #|
-    def _make_button_theme(self):
-        button = Button(description='Oceans16')
-        @button.on_click
-        def on_click(button):
-            from nglview import theme
-            display(theme.oceans16())
-            self._view._remote_call('cleanOutput',
-                                    target='Widget')
-        return button
- |#
+(defun make-preference-label-slider (instance name description value option-labels)
+  (let ((widget (make-instance 'jupyter-widgets:selection-slider
+                               :index (position (getf (%ngl-full-stage-parameters (%view instance)) name value) option-labels :test #'string=)
+                               :%options-labels option-labels :description description
+                               :layout (make-instance 'jupyter-widgets:layout
+                                                      :width +default-slider-width+)
+                               :style (make-instance 'jupyter-widgets:slider-style
+                                                      :description-width +default-text-width+))))
+    (jupyter-widgets:observe widget :index
+      (lambda (widget type nm old-value new-value source)
+        (declare (ignore widget type nm old-value source))
+        (setf (parameters (%view instance)) (list name (nth new-value option-labels)))))
+    (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+      (lambda (view type nm old-value new-value source)
+        (declare (ignore view type nm old-value source))
+        (setf (jupyter-widgets:widget-index widget)
+          (position (getf (%ngl-full-stage-parameters (%view instance)) name)
+                    option-labels :test #'string=))))
+    widget))
 
-(defmethod %make-button-reset-theme ((self trajectory-player) &optional (hide-toolbar nil))
-  (error "Theme-ifying Jupyter notebooks is in experimental phase and should not be trusted."))
- 
-#|
-    def _make_button_reset_theme(self, hide_toolbar=False):
-        from nglview import theme
+(defun make-preference-slider (instance name description value min max inc)
+  (let ((widget (make-instance (if (floatp inc) 'jupyter-widgets:float-slider 'jupyter-widgets:int-slider)
+                               :value (getf (%ngl-full-stage-parameters (%view instance)) name value)
+                               :min min :max max :step inc :description description
+                               :layout (make-instance 'jupyter-widgets:layout
+                                                      :width +default-slider-width+)
+                               :style (make-instance 'jupyter-widgets:slider-style
+                                                      :description-width +default-text-width+))))
+    (jupyter-widgets:observe widget :value
+      (lambda (widget type nm old-value new-value source)
+        (declare (ignore widget type nm old-value source))
+        (setf (parameters (%view instance)) (list name new-value))))
+    (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
+      (lambda (view type nm old-value new-value source)
+        (declare (ignore view type nm old-value source))
+        (setf (jupyter-widgets:widget-value widget)
+          (getf new-value name (jupyter-widgets:widget-value widget)))))
+    widget))
 
-        if hide_toolbar:
-            button = Button(description='Simplified Default')
-            @button.on_click
-            def on_click(button):
-                theme.reset(hide_toolbar=True)
-        else:
-            button = Button(description='Default')
-            @button.on_click
-            def on_click(button):
-                theme.reset()
-        return button
- |#
+; p:_make_widget_preference
+; The Python version uses ipywidgets.interactive which we don't have. Instead we just make the
+; panel manually. Also skipping the _relayout_master stuff since that is just a hack for not using
+; either em units or a grid-box.
+(defun %make-widget-preference (self &key (width "100%"))
+  (with-slots (widget-preference) self
+    (setf widget-preference
+          (make-instance 'jupyter-widgets:v-box
+                         :children (list
+                                     (make-instance 'jupyter-widgets:button :description "Reset"
+                                       :on-click (list (lambda (instance)
+                                                   (declare (ignore instance))
+                                                   (setf (parameters (%view self))
+                                                         (%ngl-original-stage-parameters (%view self))))))
+                                     (make-preference-slider self :pan-speed "Pan Speed" 0.8 0 10 0.1)
+                                     (make-preference-slider self :rotate-speed "Rotate Speed" 2 0 10 1)
+                                     (make-preference-slider self :zoom-speed "Zoom Speed" 1.2 0 10 1)
+                                     (make-preference-slider self :clip-dist "Clip Distance" 10 0 200 5)
+                                     (make-preference-slider self :clip-far "Clip Far" 100 0 100 1)
+                                     (make-preference-slider self :clip-near "Clip Near" 0 0 100 1)
+                                     (make-preference-slider self :camera-fov "Camera FOV" 40 15 120 1)
+                                     (make-preference-slider self :fog-far "Fog Far" 100 0 100 1)
+                                     (make-preference-slider self :fog-near "Fog Near" 60 0 100 1)
+                                     (make-preference-slider self :light-intensity "Light Intensity" 1 0 10 0.02)
+                                     (make-preference-label-slider self :quality "Quality" "medium" '("low" "medium" "high"))
+                                     (make-preference-slider self :sample-level "Sample Level" 1 -1 5 1)
+                                     (make-preference-toggle-button self :impostor "Impostor" t))))
+    widget-preference))
 
-(defmethod %make-button-clean-error-output ((self trajectory-player))
-  (let ((button (make-instance 'button :description "Clear Error")))
-    (flet ((click (_)
-             (declare (ignore _))
-	     (clean-error-output js-utils)))
-      (cljw::on-click button #'click))))
+; p:_show_download_image
+(defun %show-download-image (self)
+  (make-instance 'jupyter-widgets:button
+                 :description " Screenshot"
+                 :icon "camera"
+                 :on-click (list (lambda (button)
+                                   (declare (ignore button))
+                                   (download-image (%view self))))))
 
-(defmethod %make-widget-preference ((self trajectory-player) &optional (width "100%"))
-  (flet ((make-func ()
-	   (let ((parameters (%full-stage-parameters (view self))))
-	     (flet ((func (&key (pan-speed (get parameters "panSpeed" 0.8))
-				(rotate-speed (get parameters "rotateSpeed" 2))
-				(zoom-speed (get parameters "zoomSpeed" 1.2))
-				(clip-dist (get parameters "clipDist" 10))
-				(camera-fov (get parameters "cameraFov" 40))
-				(clip-far (get parameters "clipFar" 100))
-				(clip-near (get parameters "clipNear" 0))
-				(fog-far (get parameters "fogFar" 100))
-				(fog-near (get parameters "fogNear" 50))
-				(impostor (get parameters "impostor" t))
-				(light-intensity (get parameters "lightIntensity" 1))
-				(quality (get parameters "quality" "medium"))
-				(sample-level (get parameters "sampleLevel" 1)))
-		      (setf (parameters (view self)) (list (cons "panSpeed" pan-speed)
-							    (cons "rotateSpeed" rotate-speed)
-							    (cons "zoomSpeed" zoom-speed)
-							    (cons "clipDist" clip-dist)
-							    (cons "clipFar" clip-far)
-							    (cons "cameraFov" camera-fov)
-							    (cons "fogFar" fog-far)
-							    (cons "fogNear" fog-near)
-							    (cons "impostor" impostor)
-							    (cons "lightIntensity" light-intensity)
-							    (cons "quality" quality)
-							    (cons "sampleLevel" sample-level)))
-		      ))
-	       func)))
-	 (make-widget-box ()
-	   (let ((widget-sliders (make-instance 'interactive
-						:%interact-f make-func
-						:pan-speed '(0 10 0.1)
-						:rotate-speed '(0 10 1)
-						:zoom-speed '(0 10 1)
-						:clip-dist '(0 200 5)
-						:clip-far '(0 100 1)
-						:clip-near '(0 100 1)
-						:camera-fov '(15 120 1)
-						:fog-far '(0 100 1)
-						:fog-near '(0 100 1)
-						:light-intensity '(0 10 0.02)
-						:quality '("low" "medium" "high")
-						:sample-level '(-1 5 1))))
-	     (loop for child across (children widget-sliders)
-		do
-		  (if (or (typep child 'int-slider)
-			  (typep child 'float-slider))
-		      (setf (width (layout child)) *DEFAULT-SLIDER-WIDTH*)))
-	     widget-sliders)))
-    (when (not (widget-preference self))
-      (let* ((widget-sliders (make-widget-box))
-	     (reset-button (make-instance 'button :description "Reset")))
-	(setf (children widget-sliders) (vector reset-button (children widget-sliders)))
-	(flet ((click (reset-button)
-		 (setf (parameters (view self)) (original-stage-parameters (view self))
-		       (full-stage-parameters (view self)) (original-stage-parameters (view self))
-		       (children widget-sliders) (list reset-button (children (make-widget-box))))))
-	  (cljw::on-click reset-button #'click))
-      (setf (widget-preference self) (%relayout-master (widget-sliders :width width)))
-    (widget-prefence self)))))
+; p:_make_button_url
+(defun %make-button-url (self url description)
+  (make-instance 'jupyter-widgets:button
+                 :description description
+                 :on-click (list (lambda (button)
+                                   (declare (ignore button))
+                                   (jupyter:javascript (format +open-url-template+ url) t)))))
 
+; p:_make_text_picked
+(defun %make-text-picked (self)
+  (make-instance 'jupyter-widgets:text-area
+                 :rows 10
+                 :layout (make-instance 'jupyter-widgets:layout
+                 :width +default-slider-width+)))
 
-	
-
-(defmethod %show-download-image ((self trajectory-player))
-  (let ((button (make-instance 'button :description " Screenshot" :icon "fa-camera")))
-    (flet ((click (button)
-	     (download-image (view self))))
-      (cljw::on-click button #'click))
-      button))
-
-(defmethod %make-button-url ((self trajectory-player) url description)
-  (error "We're not so sure about this whole Javascript interoperation deal")
-  (let ((button (make-instance 'button :description description)))
-    (flet ((on-click (button)
-             (declare (ignore button))
-	     (display (Javascript (format (open-url-template js-utils) :url url)))))
-      button)))
-;;;HELP ME WITH THIS ONE please. I don't understand the javascript part
-
-(defmethod %show-website ((self trajectory-player) &optional (ngl-base-url *NGL-BASE-URL*))
-  (error "show-website in player.lisp not implemented becasue make-button-url not implemented"))
-#| 
- buttons = [self._make_button_url(url.format(ngl_base_url), description) for url, description in
-            [("'http://arose.github.io/nglview/latest/'", "nglview"),
-             ("'{}/index.html'", "NGL"),
-             ("'{}/tutorial-selection-language.html'", "Selection"),
-             ("'{}/tutorial-molecular-representations.html'", "Representation")]
-        ]
-        self.widget_help = _make_autofit(HBox(buttons))
-        return self.widget_help
- |#
-
-(defmethod %make-button-qtconsole ((self trajectory-player))
-  (let ((button (make-instance 'button :description "qtconsole" :tooltip "pop up qtconsole")))
-    (flet ((click (button)
-	     (funcall #'launch-qtconsole js-utils)))
-      (cljw::on-click button #'click))
-      button))
-
-(defmethod %make-text-picked ((self trajectory-player))
-  (let ((ta (Textarea :value (funcall dumps json (picked (view self))) :description "Picked atom")))
-    (setf (width (layout ta)) "300px")
-    ta))
-
+; p:_refresh
 (defmethod %refresh ((self trajectory-player) component-slider repr-slideR)
-  (%request-repr-parameters (%view self) :component (value component-slider) :repr-index (value repr-slider))
-  (%update-repr-dict (%view self))
-  (%handle-repr-dict-changed (%view self) :change (list (cons "new" (%repr-dict (%view self))))))
+  (%request-repr-parameters (%view self) :component (jupyter-widgets:widget-value component-slider) :repr-index (jupyter-widgets:widget-value repr-slider))
+  (%update-repr-dict (%view self)))
+  ;(%handle-repr-dict-changed (%view self) :change (list (cons "new" (%repr-dict (%view self))))))
 
 
-(defmethod %make-button-repr-control ((self trajectory-player) component-slider repr-slider repr-selection)
-  (let ((button-refresh (make-instance 'button
-				       :description " Refresh"
-				       :tooltip "Get representation info"
-				       :icon "fa-refresh"))
-	(button-center-selection (make-instance 'button
-						:description " Center"
-						:tooltip "center selected atoms"
-						:icon "fa-bullseye"))
-	(button-hide (make-instance 'button
-				    :description " Hide"
-				    :tooltip "Hide/Show current representation"
-				    :icon "fa-eye-slash"))
-	(button-remove (make-instance 'button
-				      :description " Remove"
-				      :tooltip "Remove current representation"
-				      :icon "fa-trash"))
-	(button-repr-parameter-dialog (make-instance 'button
-						     :description " Dialog"
-						     :tooltip "Pop up representation parameters control dialog"))
-	(bbox nil))
-    (setf (%ngl-name button-center-selection) "button-center-selection")
-    (flet ((click-refresh (button)
-	     (%refresh self component-slider repr-slider))
-	   (click-center (center-selection)
-	     (center (%view self) :selection (value repr-selection)
-		     :component (value component-slider)))
-	   (click-hide (button-hide)
-	     (let ((component (value component-slider))
-		   (repr-index (value repr-slider))
-		   (hide nil))
-	       (if (string= (description button-hide) "Hide")
-		   (setf hide t
-			 (description button-hide) "Show")
-		   (setf hide nil
-			 (description button-hide) "Hide"))
-	       (%remote-call (%view self) "setVisibilityForRepr" :target "Widget"
-			     :args (list component repr-index (not hide)))))
-	   (click-remove (button-remove)
-	     (%remove-representation (%view self) :component (value component-slider)
-				     :repr-index (value repr-slider))
-	     (%request-repr-parameters (%view self) :component (value component-slider)
-				       :repr-index (value repr-slider))))
-      (cljw::on-click button-refresh #'click-refresh)
-      (cljw::on-click button-center-selection #'click-center)
-      (cljw::on-click button-hide #'click-hide)
-      (cljw::on-click button-remove #'click-remove)
-      (setf bbox (%make-autofit (make-instance 'cljw::hbox :children (vector button-refresh button-center-selection button-hide button-remove))))
-      bbox)))   
+; p:_make_button_repr_control
+(defun %make-button-repr-control (self component-slider repr-slider repr-selection)
+  (setf (widget-repr-control-buttons self)
+        (make-instance 'jupyter-widgets:h-box
+                       :children (list
+                                   ; refresh button
+                                   (make-instance 'jupyter-widgets:button
+                                                  :description " Refresh"
+                                                  :tooltip "Get representation info"
+                                                  :icon "refresh"
+                                                  :on-click (list (lambda (button)
+                                                                    (declare (ignore button))
+                                                                    (%refresh self component-slider repr-slider))))
+                                   ; Center button
+                                   (make-instance 'jupyter-widgets:button
+                                                  :description " Center"
+                                                  :tooltip "center selected atoms"
+                                                  :icon "bullseye"
+                                                  :%ngl-name "button-center-selection"
+                                                  :on-click (list (lambda (button)
+                                                                    (declare (ignore button))
+                                                                    (center (%view self)
+                                                                            :selection (jupyter-widgets:widget-value repr-selection)
+                                                                            :component (jupyter-widgets:widget-value component-slider)))))
+                                   ; Hide/Show button
+                                   (make-instance 'button
+                                                  :description " Hide"
+                                                  :tooltip "Hide/Show current representation"
+                                                  :icon "eye-slash"
+                                                  :on-click (list (lambda (button-hide)
+                                                                    (let ((component (jupyter-widgets:widget-value component-slider))
+                                                                          (repr-index (jupyter-widgets:widget-value repr-slider))
+                                                                          (hide nil))
+                                                                      (if (string= (jupyter-widgets:widget-description button-hide) "Hide")
+                                                                        (setf hide t
+                                                                              (jupyter-widgets:widget-description button-hide) "Show")
+                                                                        (setf hide nil
+                                                                              (jupyter-widgets:widget-description button-hide) "Hide"))
+                                                                      (%remote-call (%view self) "setVisibilityForRepr"
+                                                                                    :target "Widget"
+                                                                                    :args (list component repr-index (not hide)))))))
+                                   ; Remove button
+                                   (make-instance 'button
+                                                  :description " Remove"
+                                                  :tooltip "Remove current representation"
+                                                  :icon "trash"
+                                                  :on-click (list (lambda (button)
+                                                                    (declare (ignore button))
+                                                                    (%remove-representation (%view self)
+                                                                                            :component (jupyter-widgets:widget-value component-slider)
+                                                                                            :repr-index (jupyter-widgets:widget-value repr-slider))
+                                                                    (%request-repr-parameters (%view self)
+                                                                                              :component (jupyter-widgets:widget-value component-slider)
+                                                                                              :repr-index (jupyter-widgets:widget-value repr-slider)))))))))
 
-(defmethod %make-widget-repr ((self trajectory-player))
-  (setf (widget-repr-name self) (make-instance 'text :value "" :description "representation")
-	(%ngl-name (widget-repr-name self)) "repr-name-text")
-  (let ((repr-selection (make-instance 'text :value "" :description "selection")))
-    (setf (ngl-name repr-selection) "repr-selection"
-	  (width repr-selection) *DEFAULT-TEXT-WIDTH*
-	  (width (widget-repr-name self)) *DEFAULT-TEXT-WIDTH*)
-    (let ((max-n-components (max (% (n-components (%view self)) 1) 0)))
-      (setf (widget-component-slider self) (make-instance 'int-slider :value 0 :max max-n-components :min 0 :description "component")
-	    (%ngl-name (widget-component-slider self)) "component-slider")
-      (let ((cvalue " "))
-	(setf (widget-component-dropdown self) (make-instance 'dropdown
-							      :value cvalue
-							      :options '((cvalue . nil))
-							      :description "component")
-	      (%ngl-name (widget-component-dropdown self)) "component_dropdown"
-	      (widget-repr-slider self) (make-instance 'int-slider
-						       :value 0
-						       :description "representation"
-						       :width *DEFAULT-SLIDER-WIDTH*))
-	(setf (%ngl-name (widget-repr-slider self)) "repr_slider"
-	      (visible (widget-repr-slider self)) t
-	      (width (layout (widget-component-slider self))) *DEFAULT-SLIDER-WIDTH*
-	      (width (layout (widget-repr-slider self))) *DEFAULT-SLIDER-WIDTH*
-	      (width (layout (widget-component-dropdown self))) *DEFAULT-TEXT-WIDTH*
-	      (max-width (widget-component-dropdown self)) *DEFAULT-TEXT-WIDTH*
-	      (display (layout (widget-component-dropdown self))) "none"
-	      (description (widget-component-dropdown self)) ""
-	      (widget-accordion-repr-parameters self) (make-instance 'tab)
-	      (widget-repr-parameters self) (%make-widget-repr-parameters self (widget-component-slider self) (widget-repr-slider self) (widget-repr-name self)))
-	(setf (children (widget-accordion-repr-parameters self)) (list (widget-repr-parameters self) (make-instance 'box)))
-	(set-title (widget-accordion-repr-parameters self) 0 "Parameters")
-	(set-title (widget-accordion-repr-parameters self) 1 "Hide")
-	(setf (selected-index (widget-accordion-repr-parameters self)) 1)
-	(let ((checkbox-reprlist (make-instance 'checkbox :value :false
-						:description "reprlist")))
-	  (setf (%ngl-name checkbox-reprlist) "checkbox_reprlist"
-		(widget-repr-choices self) (%make-repr-name-choices self (widget-component-slider self) (widget-repr-slider self)))
-	  (setf (%ngl-name (widget-repr-choices self)) "reprlist_choices"
-		(widget-repr-add self) (%make-add-widget-repr self (widget-component-slider self)))
-	  (flet ((on-update-checkbox-reprlist (change)
-		   (setf (visible (widget-repr-choices self)) (aref change "new"))
-		 (values)))
-	    (observe checkbox-reprlist on-update-checkbox-reprlist :names "value")	  
-	  (error "-make-widget-repr not finished!!")))))))
- #|
-        def on_repr_name_text_value_changed(change):
-            name = change['new'].strip()
-            old = change['old'].strip()
+; p:on_component_or_repr_slider_value_changed
+(defun on-component-or-repr-slider-value-changed (player-instance)
+  (with-slots (widget-component-slider widget-repr-slider widget-component-dropdown)
+              player-instance
+    (setf (jupyter-widgets:widget-%options-labels widget-component-dropdown)
+          (%ngl-component-names (%view player-instance)))))
 
-            should_update = (self._real_time_update
-                             and old and name
-                             and name in REPRESENTATION_NAMES
-                             and name != change['old'].strip())
 
-            if should_update:
-                component=self.widget_component_slider.value
-                repr_index=self.widget_repr_slider.value
-                self._view._remote_call('setRepresentation',
-                                 target='Widget',
-                                 args=[change['new'], {}, component, repr_index])
-                self._view._request_repr_parameters(component, repr_index)
+; p:_make_widget_repr
+; A lot of this could really be done in initialize-instance
+(defun %make-widget-repr (self)
+  (with-slots (widget-repr-add widget-component-slider widget-repr-name widget-component-dropdown
+               widget-repr-slider widget-repr-parameters widget-accordion-repr-parameters
+               widget-repr-choices widget-repr-control-buttons)
+              self
 
-        def on_component_or_repr_slider_value_changed(change):
-            self._view._request_repr_parameters(component=self.widget_component_slider.value,
-                                                repr_index=self.widget_repr_slider.value)
-            self.widget_component_dropdown.options = tuple(self._view._ngl_component_names)
+    (let* ((layout (make-instance 'jupyter-widgets:layout :width +default-slider-width+))
+           (description-style (make-instance 'jupyter-widgets:description-style :description-width +default-text-width+))
+           (slider-style (make-instance 'jupyter-widgets:description-style :description-width +default-text-width+)))
 
-            if self.widget_accordion_repr_parameters.selected_index >= 0:
-                self.widget_repr_parameters.name = self.widget_repr_name.value
-                self.widget_repr_parameters.repr_index = self.widget_repr_slider.value
-                self.widget_repr_parameters.component_index = self.widget_component_slider.value
+      (setf widget-repr-selection
+            (make-instance 'jupyter-widgets:text :description "Selection" :value "*"
+                                          :style description-style)
 
-        def on_repr_selection_value_changed(change):
-            if self._real_time_update:
-                component = self.widget_component_slider.value
-                repr_index = self.widget_repr_slider.value
-                self._view._set_selection(change['new'],
-                                          component=component,
-                                          repr_index=repr_index)
+            widget-repr-name
+            (make-instance 'jupyter-widgets:text :description "Representation"
+                           :style description-style)
 
-        def on_change_component_dropdown(change):
-            choice = change['new']
-            if choice:
-                 self.widget_component_slider.value = self._view._ngl_component_names.index(choice)
+            widget-component-slider
+            (make-instance 'jupyter-widgets:int-slider :description "Component"
+                           :min 0 :max (max 0 (1- (n-components (%view self))))
+                           :layout layout :style slider-style)
 
-        self.widget_component_dropdown.observe(on_change_component_dropdown, names='value')
+            widget-component-dropdown
+            (make-instance 'jupyter-widgets:dropdown :description "Component"
+                           :style description-style)
 
-        self.widget_repr_slider.observe(on_component_or_repr_slider_value_changed, names='value')
-        self.widget_component_slider.observe(on_component_or_repr_slider_value_changed, names='value')
-        self.widget_repr_name.observe(on_repr_name_text_value_changed, names='value')
-        repr_selection.observe(on_repr_selection_value_changed, names='value')
+            widget-repr-slider
+            (make-instance 'jupyter-widgets:int-slider :description "Representation"
+                           :layout layout :style slider-style)
 
-        self.widget_repr_control_buttons = self._make_button_repr_control(self.widget_component_slider,
-        self.widget_repr_slider, repr_selection)
+            widget-repr-parameters
+            (%make-widget-repr-parameters self widget-component-slider widget-repr-slider
+                                          widget-repr-name)
 
-        blank_box = Box([Label("")])
+            widget-accordion-repr-parameters
+            (make-instance 'jupyter-widgets:tab :%titles '("Parameters" "Hide")
+                           :children (list widget-repr-parameters
+                                           (make-instance 'jupyter-widgets:box))))
 
-        all_kids = [self.widget_repr_control_buttons,
-                    blank_box,
-                    self.widget_repr_add,
-                    self.widget_component_dropdown,
-                    self.widget_repr_name,
-                    repr_selection,
-                    self.widget_component_slider,
-                    self.widget_repr_slider,
-                    self.widget_repr_choices,
-                    self.widget_accordion_repr_parameters
-        ]
+      (%make-repr-name-choices self)
+      (%make-add-widget-repr self widget-component-slider)
+      (%make-button-repr-control self widget-component-slider widget-repr-slider widget-repr-selection)
 
-        vbox = VBox(all_kids)
+      (jupyter-widgets:observe widget-repr-slider :value
+        (lambda (inst name type old-value new-value source)
+          (declare (ignore inst name type old-value new-value source))
+          (on-component-or-repr-slider-value-changed self)))
 
-        self._view._request_repr_parameters(component=self.widget_component_slider.value,
-            repr_index=self.widget_repr_slider.value)
+      (jupyter-widgets:observe widget-component-slider :value
+        (lambda (inst name type old-value new-value source)
+          (declare (ignore inst name type old-value new-value source))
+          (on-component-or-repr-slider-value-changed self)))
 
-        self.widget_repr = _relayout_master(vbox, width='100%')
+      (jupyter-widgets:link widget-repr-parameters :name
+                            widget-repr-name :value)
 
-        self._refresh(self.widget_component_slider, self.widget_repr_slider)
+      (jupyter-widgets:link widget-repr-parameters :repr-index
+                            widget-repr-slider :value)
 
-        setattr(self.widget_repr, "_saved_widgets", [])
-        for _box in self.widget_repr.children:
-            if hasattr(_box, 'children'):
-                for kid in _box.children:
-                    self.widget_repr._saved_widgets.append(kid)
+      (jupyter-widgets:link widget-repr-parameters :component-index
+                            widget-component-slider :value)
 
-        return self.widget_repr
- |#
+      (make-instance 'jupyter-widgets:v-box
+                     :children (list widget-repr-control-buttons
+                                     widget-repr-add
+                                     widget-component-dropdown
+                                     widget-repr-name
+                                     widget-repr-selection
+                                     widget-component-slider
+                                     widget-repr-slider
+                                     widget-repr-choices
+                                     widget-accordion-repr-parameters)))))
 
-(defmethod %make-widget-repr-parameters ((self trajectory-player) component-slider repr-slider &optional (repr-name-text nil))
-  (let ((name " "))
-    (if repr-name-text
-	(setf name (value repr-name-text)))
-    (let ((widget (%display-repr (%view self)
-		 :component (value component-slider)
-		 :repr-index (value repr-slider)
-		 :name name)))
-      (setf (%ngl-name widget) "repr_parameters_box")
-      widget)))
-      
-(defmethod %make-button-export-image ((self trajectory-player))
-  (let ((slider-factor (make-instance 'int-slider
-				      :value 4
-				      :min 1
-				      :max 10
-				      :description "scale"))
-	(checkbox-antialias (make-instance 'checkbox
-					   :value :true
-					   :description "antialias"))
-	(checkbox-trim (make-instance 'checkbox
-				      :value :false
-				      :description "trim"))
-	(checkbox-transparent (make-instance 'checkbox
-					     :value :false
-					     :description "transparent"))
-	(filename-text (make-instance 'text
-				      :value "Screenshot"
-				      :description "Filename"))
-	(delay-text (make-instance 'float-text
-				   :value 1
-				   :description "delay (s)"
-				   :tooltip "hello"))
-	(start-text (make-instance 'int-text
-				   :value 0
-				   :description "start"))
-	(stop-text (make-instance 'int-text
-				  :value (count (%view self))
-				  :description "stop"))
-	(step-text (make-instance 'int-text
-				  :value 1
-				  :description "step")))
-    (setf (max-width (layout start-text)) *DEFAULT-TEXT-WIDTH*
-	  (max-width (layout stop-text)) *DEFAULT-TEXT-WIDTH*
-	  (max-width (layout step-text)) *DEFAULT-TEXT-WIDTH*
-	  (max-width (layout filename-text)) *DEFAULT-TEXT-WIDTH*
-	  (max-width (layout delay-text)) *DEFAULT-TEXT-WIDTH*)
-    (let ((button-movie-images (make-instance 'button
-					      :description "Export Images")))
-      (flet ((download-image (filename)
-	       (download-image (%view self)
-			       :factor (value slider-factor)
-			       :antialias (value checkbox-antialias)
-			       :trim (value checkbox-trim)
-			       :transparent (value checkbox-transparent)
-			       :filename filename))
-	     (click-images (button-movie-images)
-	       (error "Help implement on-click-images in player.lisp!")))
-	(cljw::on-click button-movie-images #'click-images)
-	(let* ((vbox (make-instance 'vbox
-				   :children (vector button-movie-images
-						     start-text
-						     stop-text
-						     step-text
-						     delay-text
-						     filename-text
-						     slider-factor
-						     checkbox-antialias
-						     checkbox-trim
-						     checkbox-transparent)))
-	       (form-items (%relayout vbox make-form-item-layout))
-	       (form (make-instance 'Box form-items :layout (%make-box-layout))))
-	  form)))))
-     #|
-        @button_movie_images.on_click
-        def on_click_images(button_movie_images):
-            for i in range(start_text.value, stop_text.value, step_text.value):
-                self._view.frame = i
-                time.sleep(delay_text.value)
-                download_image(filename=filename_text.value + str(i))
-                time.sleep(delay_text.value)
- |#
-	    
+
+; p:_make_widget_repr_parameters
+(defun %make-widget-repr-parameters (self component-slider repr-slider &optional (repr-name-text nil))
+  (let ((widget (%display-repr (%view self)
+                               :component (jupyter-widgets:widget-value component-slider)
+                               :repr-index (jupyter-widgets:widget-value repr-slider)
+                               :name (if repr-name-text
+                                       (jupyter-widgets:widget-value repr-name-text)
+                                       " "))))
+    ;(setf (%ngl-name widget) "repr_parameters_box")
+    widget))
+
+; p:_make_button_export_image
+(defun %make-button-export-image (self)
+  (let* ((layout (make-instance 'jupyter-widgets:layout
+                                     :width +default-slider-width+))
+         (style (make-instance 'jupyter-widgets:description-style
+                                                             :description-width +default-text-width+))
+         (slider-factor (make-instance 'int-slider
+                                       :value 4 :min 1 :max 10
+                                       :description "scale"
+                                       :layout layout
+                                       :style (make-instance 'jupyter-widgets:slider-style
+                                                             :description-width +default-text-width+)))
+         (checkbox-antialias (make-instance 'jupyter-widgets:toggle-button :value t :description "antialias"))
+         (checkbox-trim (make-instance 'jupyter-widgets:toggle-button :value nil :description "trim"))
+         (checkbox-transparent (make-instance 'jupyter-widgets:toggle-button :value nil :description "transparent"))
+         (filename-text (make-instance 'text
+                                       :value "Screenshot" :description "Filename"
+                                       :style style))
+         (delay-text (make-instance 'float-text
+                                    :value 1
+                                    :description "delay (s)"
+                                    :tooltip "hello"
+                                    :style style))
+         (start-text (make-instance 'int-text
+                                    :value 0
+                                    :description "start"
+                                    :style style))
+         (stop-text (make-instance 'int-text
+                                   :value (count (%view self))
+                                   :description "stop"
+                                   :style style))
+         (step-text (make-instance 'int-text
+                                   :value 1
+                                   :description "step"
+                                   :style style))
+         (button-movie-images (make-instance 'button
+                                             :description "Export Images")))
+    (jupyter-widgets:on-button-click
+      button-movie-images
+      (lambda (button)
+        (declare (ignore button))
+        (do* ((step (jupyter-widgets:widget-value step-text))
+              (stop (jupyter-widgets:widget-value stop-text))
+              (delay (jupyter-widgets:widget-value delay-text))
+              (antialias (jupyter-widgets:widget-value checkbox-antialias))
+              (trim (jupyter-widgets:widget-value checkbox-trim))
+              (transparent (jupyter-widgets:widget-value checkbox-transparent))
+              (filename (jupyter-widgets:widget-value filename-text))
+              (factor (jupyter-widgets:widget-value slider-factor))
+              (frame (jupyter-widgets:widget-value start-text) (+ frame step)))
+             ((>= frame stop))
+          (setf (frame (%view self)) frame)
+          (sleep delay)
+          (download-image (%view self) :filename (format nil "~A~A" filename frame)
+                          :factor factor :antialias antialias :trim trim :transparent transparent)
+          (sleep delay))))
+
+    (make-instance 'jupyter-widgets:v-box
+                   :children (list button-movie-images
+                                   start-text
+                                   stop-text
+                                   delay-text
+                                   filename-text
+                                   slider-factor
+                                   checkbox-antialias
+                                   checkbox-trim
+                                   checkbox-transparent))))
+
+
 (defmethod %make-resize-notebook-slider ((self trajectory-player))
-  (let ((resize-notebook-slider (make-instance 'int-slider :min 300 :max 2000 :description "resize notebook")))
-    (flet ((on-resize-notebook(change)
-	     (let ((width (aref change "new")))
-	       (remote-call (%view self) "resizeNotebook" :target "Widget" :args (list width))
-	       (values))))
-      (observe resize-notebook-slider on-resize-notebook :names "value")
-      resize-notebook-slider)))
+  (make-instance 'int-slider
+                 :min 300 :max 2000 :description "resize notebook"
+                 :on-trait-change (list
+                                    (cons :value
+                                          (lambda (instance type name old new source)
+                                            (declare (ignore instance type name old source))
+                                            (remote-call (%view self)
+                                                         "resizeNotebook"
+                                                         :target "Widget"
+                                                         :args (list new)))))))
 
+; p:_make_add_widget_repr
+(defun %make-add-widget-repr (self component-slider)
+  (let ((dropdown-repr-name (make-instance 'jupyter-widgets:dropdown
+                                           :layout (make-instance 'jupyter-widgets:layout
+                                                                  :width +default-text-width+)
+                                           :%options-labels (mapcar #'cdr +representation-names+)
+                                           :index (position-if (lambda (pair) (string= (cdr pair) "cartoon")) +representation-names+)))
+        (repr-selection (make-instance 'jupyter-widgets:text
+                                       :layout (make-instance 'jupyter-widgets:layout
+                                                              :width +default-text-width+)
+                                       :value "*"
+                                       :description ""))
+        (repr-button (make-instance 'jupyter-widgets:button
+                                    :description "Add"
+                                    :layout (make-instance 'jupyter-widgets:layout
+                                                           :width "auto"
+                                                           :flex "1 1 auto")
+                                    :tooltip "Add representation. You can also hit Enter in selection box.")))
+    (jupyter-widgets:on-button-click repr-button
+                                     (lambda (button)
+                                       (declare (ignore button))
+                                       (add-representation (%view self)
+                                                           (jupyter-widgets:widget-value dropdown-repr-name)
+                                                           :selection (strip (jupyter-widgets:widget-value repr-selection))
+                                                           :component (jupyter-widgets:widget-value component-slider))))
 
+    (setf (widget-repr-add self)
+          (make-instance 'jupyter-widgets:h-box
+                         :children (list repr-button
+                                         dropdown-repr-name
+                                                         repr-selection)))))
 
-(defmethod %make-add-widget-repr ((self trajectory-player) component-slider)
-  (let ((dropdown-repr-name (make-instance 'dropdown
-					   :options *REPRESENTATION-NAMES*
-					   :value "cartoon"))
-	(repr-selection (make-instance 'text
-				       :value "*"
-				       :description ""))
-	(repr-button (make-instance 'button
-				    :description "Add"
-				    :tooltip "Add representation. You can also hit Enter in selection box.")))
-    (setf (layout repr-button) (make-instance 'cl-ipywidgets::layout
-					      :width "auto"
-					      :flex "1 1 auto")
-	  (width (layout dropdown-repr-name)) *DEFAULT-TEXT-WIDTH*
-	  (width (layout repr-selection)) *DEFAULT-TEXT-WIDTH*)
-    (flet ((on-click-or-submit (button-or-text-area)
-	     (add-representation (%view self)
-				 :selection (strip (value repr-selection))
-				 :repr-type (value dropdown-repr-name)
-				 :component (value component-slider))
-	     (values)))
-      (on-click repr-button on-click-or-submit)
-      (on-submit repr-selection on-click-or-submit)
-      (let ((add-repr-box (make-instance 'hbox
-					 :children (vector repr-button
-							   dropdown-repr-name
-							   repr-selection))))
-	(setf (%ngl-name add-repr-box) "add_repr_box")
-	add-repr-box))))
- 
+(defun has-repr-p (representations name)
+  (some
+    (lambda (group)
+      (some
+        (lambda (repr)
+          (equalp name (cdr (assoc "type" (cddr repr) :test #'string=))))
+        (cddr group)))
+    representations))
 
+; p:_make_repr_playground
+(defun %make-repr-playground (player-instance)
+  (let ((repr-selection (make-instance 'jupyter-widgets:text :value "*" :description "Selection"
+                                       :layout (make-instance 'jupyter-widgets:layout
+                                                              :width +default-slider-width+)
+                                       :style (make-instance 'jupyter-widgets:slider-style
+                                                             :description-width +default-text-width+)))
+        (button-clear (make-instance 'jupyter-widgets:button
+                                     :description "Clear"
+                                     :button-style "info"
+                                     :icon "eraser")))
+    (make-instance
+      'jupyter-widgets:v-box
+      :layout (make-instance 'jupyter-widgets:layout :grid-gap +default-padding+)
+      :children (list
+                  button-clear
+                  (make-instance
+                    'jupyter-widgets:v-box
+                    :layout (make-instance 'jupyter-widgets:layout :width "auto" :flex-flow "row wrap")
+                    :children (mapcan (lambda (pair)
+                                        (unless (member (cdr pair) '("distance" "ball+stick") :test #'string=)
+                                          (let ((inst (make-instance 'jupyter-widgets:toggle-button
+                                                                     :value (has-repr-p (ngl-repr-dict (%view player-instance)) (cdr pair))
+                                                                     :description (car pair))))
+                                            (jupyter-widgets:on-button-click button-clear
+                                              (lambda (button)
+                                                (declare (ignore button))
+                                                (setf (jupyter-widgets:widget-value inst) nil)))
+                                            ; (jupyter-widgets:observe (%view player-instance) :%ngl-repr-dict
+                                            ;   (lambda (i name type old-value new-value source)
+                                            ;     (declare (ignore i name type old-value source))
+                                            ;     (setf (jupyter-widgets:widget-value inst) (has-repr-p new-value (cdr pair)))))
+                                            (jupyter-widgets:observe inst :value
+                                                                     (lambda (inst name type old-value new-value source)
+                                                                       (declare (ignore name type old-value source))
+                                                                       (unless (equal old-value new-value)
+                                                                         (if new-value
+                                                                           (add-representation (%view player-instance) (cdr pair) :selection (jupyter-widgets:widget-value repr-selection))
+                                                                           (%remove-representations-by-name (%view player-instance) (cdr pair))))))
+                                            (list inst))))
+                                      +representation-names+))
+                  repr-selection))))
 
-(defmethod %make-repr-playground ((self trajectory-player))
-  (error "-make-repr-playground in player.lisp needs your help"))
-   #|
-    def _make_repr_playground(self):
-        vbox = VBox()
-        children = []
-
-        rep_names = REPRESENTATION_NAMES[:]
-        excluded_names = ['ball+stick', 'distance']
-        for name in excluded_names:
-            rep_names.remove(name)
-
-        repr_selection = Text(value='*')
-        repr_selection.layout.width = default.DEFAULT_TEXT_WIDTH
-        repr_selection_box  = HBox([Label('selection'), repr_selection])
-        setattr(repr_selection_box, 'value', repr_selection.value)
-
-        for index, name in enumerate(rep_names):
-            button = ToggleButton(description=name)
-
-            def make_func():
-                def on_toggle_button_value_change(change, button=button):
-                    selection = repr_selection.value
-                    new = change['new'] # True/False
-                    if new:
-                        self._view.add_representation(button.description, selection=selection)
-                    else:
-                        self._view._remove_representations_by_name(button.description)
-                return on_toggle_button_value_change
-
-            button.observe(make_func(), names='value')
-            children.append(button)
-
-        button_clear = Button(description='clear', button_style='info',
-                icon='fa-eraser')
-
-        @button_clear.on_click
-        def on_clear(button_clear):
-            self._view.clear()
-            for kid in children:
-                # unselect
-                kid.value = False
-
-        vbox.children = children + [repr_selection, button_clear]
-        _make_autofit(vbox)
-        self.widget_quick_repr = vbox
-        return self.widget_quick_repr
- |#
-
-(defmethod %make-repr-name-choices ((self trajectory-player) component-slider repr-slider)
-  (let ((repr-choices (make-instance 'dropdown :options '((" " . "")))))
-    (flet ((on-chose (change)
-	     (let ((repr-name (aref change "new"))
-		   (repr-index (index (options repr-choices))))
-	       (setf (value repr-slider) repr-index)
-	       (values))))
-      (observe repr-choices on-chose :names "value")
-      (setf (width (layout repr-choices)) *DEFAULT-TEXT-WIDTH*
-	    (widget-repre-choices self) repr-choices)
-      (widget-repr-choices self)))
-  (error "I don't think we have an observe or index function defined.  %make-repr-name-choices in player.lisp"))
- #|
-    def _make_repr_name_choices(self, component_slider, repr_slider):
-        repr_choices = Dropdown(options=[" ",])
-
-        def on_chose(change):
-            repr_name = change['new']
-            repr_index = repr_choices.options.index(repr_name)
-            repr_slider.value = repr_index
-
-        repr_choices.observe(on_chose, names='value')
-        repr_choices.layout.width = default.DEFAULT_TEXT_WIDTH
-
-        self.widget_repr_choices = repr_choices
-        return self.widget_repr_choices
- |#
+; p:_make_repr_name_choices
+(defun %make-repr-name-choices (instance)
+  (with-slots (widget-repr-choices widget-repr-slider) instance
+    (setf widget-repr-choices (make-instance 'dropdown))
+    (jupyter-widgets:observe widget-repr-choices :index
+      (lambda (instance name type old-value new-value source)
+        (declare (ignore instance name type old-value source))
+        (setf (jupyter-widgets:widget-value widget-repr-slider) new-value)))))
 
 (defmethod %make-drag-widget ((self trajectory-player))
   (error "only YOU can prevent this error message in %make-drag-widget in player.lisp"))
@@ -935,35 +832,50 @@
         return drag_box
  |#
 
-(defmethod %make-spin-box ((self trajectory-player))
-  (let ((checkbox-spin (apply #'make-instance 'checkbox (%spin-x self) :description "spin"))
-	(spin-x-slide (apply #'make-instance 'int-slider (%spin-x self) :min -1 :max 1 :description "spin_x"))
-	(spin-y-slide (apply #'make-instance 'int-slider (%spin-y self) :min -1 :max 1 :description "spin_y"))
-	(spin-z-slide (apply #'make-instance 'int-slider (%spin-z self) :min -1 :max 1 :description "spin_z"))
-	(spin-speed-slide (apply #'make-instance 'float-slider (%spin-speed self) :min 0 :max 0.2 :step 0.001 :description "spin speed")))
-    (error "Only YOU can implement the link traitlet")
-     #|
-        link((checkbox_spin, 'value'), (self, 'spin'))
-        link((spin_x_slide, 'value'), (self, '_spin_x'))
-        link((spin_y_slide, 'value'), (self, '_spin_y'))
-        link((spin_z_slide, 'value'), (self, '_spin_z'))
-        link((spin_speed_slide, 'value'), (self, '_spin_speed'))
-     |#
+; p:_make_spin_box
+(defun %make-spin-box (self)
+  (let ((checkbox-spin (make-instance 'jupyter-widgets:toggle-button :value (spin self) :description "Spin"))
+        (spin-x-slide (make-instance 'jupyter-widgets:int-slider
+                                     :value (%spin-x self) :min -1 :max 1 :description "Spin x"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+        (spin-y-slide (make-instance 'jupyter-widgets:int-slider
+                                     :value (%spin-y self) :min -1 :max 1 :description "Spin y"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+        (spin-z-slide (make-instance 'jupyter-widgets:int-slider
+                                     :value (%spin-z self) :min -1 :max 1 :description "Spin z"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+        (spin-speed-slide (make-instance 'jupyter-widgets:float-slider
+                                         :value (%spin-speed self)
+                                         :min 0 :max 0.2 :step 0.001 :description "Spin Speed"
+                                         :layout (make-instance 'jupyter-widgets:layout
+                                                                :width +default-slider-width+)
+                                         :style (make-instance 'jupyter-widgets:slider-style
+                                                               :description-width +default-text-width+))))
+    (jupyter-widgets:link checkbox-spin :value self :spin)
+    (jupyter-widgets:link spin-x-slide :value self :%spin-x)
+    (jupyter-widgets:link spin-y-slide :value self :%spin-y)
+    (jupyter-widgets:link spin-z-slide :value self :%spin-z)
+    (jupyter-widgets:link spin-speed-slide :value self :%spin-speed)
+    (make-instance 'jupyter-widgets:v-box :children (list checkbox-spin spin-x-slide spin-y-slide spin-z-slide spin-speed-slide))))
 
-    (let ((spin-box (make-instance 'vbox :children (vector checkbox-spin spin-x-slide spin-y-slide spin-z-slide spin-speed-slide))))
-      (setf spin-box (%relayout-master spin-box :width "75%"))
-      spin-box)))
-
-(defmethod %make-widget-picked ((self trajectory-player))
+; p:_make_widget_picked
+(defun %make-widget-picked (self)
   (setf (widget-picked self) (%make-text-picked self))
-  (let ((picked-box (make-instance 'hbox :children (vector (widget-picked self)))))
-    (%relayout-master picked-box :width "75%")))
+  (make-instance 'jupyter-widgets:h-box :children (list (widget-picked self))))
 
-(defmethod %make-export-image-widget ((self trajectory-player))
-  (if (not (widget-export-image self))
-      (setf (widget-export-image self) (make-instance 'hbox :children (vector (funcall (%make-button-export-image self))))))
-      (widget-export-image self))
-;;;HELP! This can't be right. I don't think my vector works properly.
+(defun %make-export-image-widget (player-instance)
+  (unless (widget-export-image player-instance)
+    (setf (widget-export-image player-instance) (%make-button-export-image player-instance)))
+  (widget-export-image player-instance))
 
 (defmethod %make-extra-box ((self trajectory-player))
   (if (not (widget-extra self))
@@ -980,42 +892,61 @@
 
 (defmethod %make-theme-box ((self trajectory-player))
   (if (not (widget-theme self))
-      (setf (widget-theme self) (apply #'make-instance 'box :children (vector (%make-button-theme self) (%make-button-reset-theme self :hide-toolbar nil) (%make-button-reset-theme self :hide-toolbar t) (%make-button-clean-error-output self)))))
+      (setf (widget-theme self) (apply #'make-instance 'box :children (list (%make-button-theme self) (%make-button-reset-theme self :hide-toolbar nil) (%make-button-reset-theme self :hide-toolbar t) (%make-button-clean-error-output self)))))
   (widget-theme self))
 
-(defmethod %make-general-box ((self trajectory-player))
-  (if (not (widget-general self))
-      (let ((step-slide (make-instance 'int-slider :value (%step self) :min -100 :max 100 :description "step"))
-	    (delay-text (make-instance 'int-slider :value (delay self) :min 10 :max 1000 :description "delay"))
-	    (toggle-button-interpolate (make-instance 'toggle-button :value (interpolate self) :description "Smoothing" :tooltip "smoothing trajectory")))
-	(error "Help me finish %make-general-box's implementation")
-	;;link((toggle-button-interpolate, 'value'), (self, 'interpolate')
-	(let ((background-color-picker (make-instance 'color-picker :value "white" :description "background"))
-	      (camera-type (make-instance 'dropdown :value (camera self) :options '(("perspective" . "orthographic")) :description "camera")))
-	  (error "Help me finish %make-general-box's implementation!")
-	     #|          link((step_slide, 'value'), (self, 'step'))
-            link((delay_text, 'value'), (self, 'delay'))
-            link((toggle_button_interpolate, 'value'), (self, 'interpolate'))
-            link((camera_type, 'value'), (self, 'camera'))
-            link((background_color_picker, 'value'), (self._view, 'background'))
-	   |#
-	  (let* ((center-button (%make-button-center self))
-		(render-button (%show-download-image self))
-		(qtconsole-button (%make-button-qtconsole self))
-		(center-render-hbox (%make-autofit (make-instance 'hbox :children (vector toggle-button-interpolate center-button render-button qtconsole-button))))
-		 (v0-left (make-instance 'vbox :children (vector step-slide delay-text background-color-picker camera-type center-render-hbox))))
-	    (setf v0-left (%relayout-master v0-left :width "100%"))
-	    (setf (widget-general self) v0-left)
-	    widget-general)))))
+(defun %make-general-box (self)
+  (unless (widget-general self)
+    (let ((step-slide (make-instance 'int-slider
+                                     :value (%step self) :min -100 :max 100 :description "step"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+          (delay-text (make-instance 'int-slider
+                                     :value (delay self) :min 10 :max 1000 :description "delay"
+                                     :layout (make-instance 'jupyter-widgets:layout
+                                                            :width +default-slider-width+)
+                                     :style (make-instance 'jupyter-widgets:slider-style
+                                                           :description-width +default-text-width+)))
+          (toggle-button-interpolate (make-instance 'toggle-button
+          :value (interpolate self) :description "Smoothing" :tooltip "smoothing trajectory"))
+          (background-color-picker (make-instance 'color-picker :value "white" :description "background"
+                               :style (make-instance 'jupyter-widgets:description-style
+                                                      :description-width +default-text-width+)))
+          (camera-type (make-instance 'dropdown :index (position (camera self) +camera-types+ :test #'string=) :%options-labels +camera-types+ :description "camera"
+                               :style (make-instance 'jupyter-widgets:description-style
+                                                      :description-width +default-text-width+))))
+      (jupyter-widgets:link step-slide :value self :step)
+      (jupyter-widgets:link delay-text :value self :delay)
+      (jupyter-widgets:link toggle-button-interpolate :value self :interpolate)
+      (jupyter-widgets:observe camera-type :index
+        (lambda (instance name type old new source)
+          (declare (ignore instance name type old source))
+          (setf (camera self) (nth new +camera-types+))))
+      (jupyter-widgets:observe self :camera
+        (lambda (instance name type old new source)
+          (declare (ignore instance name type old source))
+          (setf (jupyter-widgets:widget-index camera-type) (position new +camera-types+ :test #'string=))))
+      (jupyter-widgets:link background-color-picker :value (%view self) :background)
+    (let* ((center-button (%make-button-center self))
+           (render-button (%show-download-image self))
+           (center-render-hbox (%make-autofit (make-instance 'jupyter-widgets:h-box :children (list toggle-button-interpolate center-button render-button))))
+           (v0-left (make-instance 'vbox :children (list step-slide delay-text background-color-picker camera-type center-render-hbox))))
+      ;(setf v0-left (%relayout-master v0-left :width "100%"))
+      (setf (widget-general self) v0-left))))
+  (widget-general self))
 
-(defmethod %make-command-box ((self trajectory-player))
-  (let ((widget-text-command (make-instance 'text)))
-    (flet ((submit-command (_)
-	     (let ((command (value widget-text-command)))
-	       (execute js-utils command)
-	       (setf (value widget-text-command) ""))))
-      (cljw::on-submit widget-text-command #'submit-command)
-      widget-text-command)))
+; p:_make_commmand_box
+(defun %make-command-box (self)
+  (let ((widget-text-command (make-instance 'jupyter-widgets:text-area :continuous-update nil)))
+    (jupyter-widgets:observe widget-text-command :value
+      (lambda (instance name type old-value new-value source)
+        (declare (ignore name type old-value source))
+        (unless (zerop (length new-value)))
+          (jupyter:javascript new-value t)
+          (setf (jupyter-widgets:widget-value widget-text-command) "")))
+    widget-text-command))
 
 
 (defmethod %create-all-tabs ((self trajectory-player))
