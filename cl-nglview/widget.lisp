@@ -45,7 +45,7 @@
            :initform nil)
    (picked :initarg :picked
             :accessor picked
-            :trait :dict
+            :trait :json
             :initform nil)
    (%pick-history :initarg :pick-history
                   :accessor pick-history
@@ -437,6 +437,12 @@
 
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :picked)) old new source)
   (declare (ignore type name old source))
+  (when (and new
+             (jsown:keyp new "atom")
+             (slot-boundp self '%pick-history))
+    (push new (pick-history self))
+    (setf (pick-history self)
+          (subseq (pick-history self) 0 (min *pick-history-depth* (length (pick-history self))))))
   (when (and (player self) (widget-picked (player self)))
     (setf (jupyter-widgets:widget-value (widget-picked (player self)))
           (with-output-to-string (stream)
