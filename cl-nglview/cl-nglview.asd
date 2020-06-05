@@ -6,20 +6,20 @@
   :license "LGPL2. See LICENSE."
   :depends-on (:alexandria
                :common-lisp-jupyter
+               :drakma
                :bordeaux-threads
                :jsown
-               :trivial-garbage
-               :trivial-http)
+               :purl
+               :trivial-garbage)
   :serial t
-  :components (
-               (:file "packages")
-               (:file "config")
+  :components ((:file "packages")
                (:file "color")
                (:module "utils"
                  :serial t
                  :components ((:file "js-utils")
                               (:file "py-utils")))
-               (:file "ngl-widgets")
+               (:file "default")
+               (:file "parameters")
                (:file "queue")
                (:file "utils-local")
                (:file "layout")
@@ -27,12 +27,10 @@
                (:file "pythread")
                (:file "component")
                (:file "stage")
-               (:file "widget")
                (:file "base_adaptor")
                (:file "adaptor")
-               (:file "show")
                (:file "representation")
                (:file "player")
-               (:file "parameters")
-               (:file "default")
-               ))
+               (:file "widget")
+               (:file "show")))
+

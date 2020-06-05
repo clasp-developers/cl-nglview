@@ -1,16 +1,7 @@
 (in-package :nglv)
-;;;https://github.com/drmeister/spy-ipykernel/blob/master/nglview/show.py#L37
-
-(jupyter:inform :info nil "widget-log show.lisp")
-
-(defparameter *all* (list "demo" "show_pdbid" "show_url" "show_text" "show_ase" "show_simpletraj" "show_mdtraj" "show_pytraj" "show_mdanalysis" "show_parmed" "show_rdkit" "show_structure_file" "show_htmd"))
 
 (defun show-pdbid (pdbid &rest kwargs &key &allow-other-keys)
-  "Show PDB entry.
-    Examples - (defparameter w (nglv:show_pdbid \"3pqr\"))
-               (cl-ipywidgets::disp w)???????"
-  (jupyter:inform :info nil "show-pdbid ~s" pdbid)
-  (let ((structure (make-instance 'PdbIdStructure :pdbid pdbid)))
+  (let ((structure (make-instance 'pdb-id-structure :pdbid pdbid)))
        (apply #'make-nglwidget :structure structure kwargs)))
 
 (defun show-url (url &rest kwargs &key &allow-other-keys)
@@ -19,11 +10,11 @@
     view))
 
 (defun show-text (text &rest kwargs &key &allow-other-keys)
-  (let ((structure (make-instance 'TextStructure text)))
+  (let ((structure (make-instance 'text-structure :text text)))
     (apply #'make-nglwidget :structure structure kwargs)))
 
 (defun show-ase (ase-atoms &rest kwargs &key &allow-other-keys)
-  (let ((structure (make-instance 'ASEStructure ase-atoms)))
+  (let ((structure (make-instance 'ASEStructure :ase-atoms ase-atoms)))
     (apply #'make-nglwidget :structure structure kwargs)))
 
 (defun show-structure-file (path &rest kwargs &key &allow-other-keys)
@@ -56,6 +47,7 @@
     (apply #'make-nglwidget :structure structure-trajectory kwargs)))
 
 (defun show-rdkit (rdkit-mol &rest kwargs &key &allow-other-keys)
+  (declare (ignore rdkit-mol kwargs))
   (error "show::show-rdkit error!!! Implement me!!!!"))
 #|
 def show_rdkit(rdkit_mol, **kwargs):

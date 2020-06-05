@@ -1,13 +1,18 @@
 (in-package :nglv)
 
-(defclass ComponentViewer ()
-  ((%view :initarg :%view :accessor %view
-         :initform nil)
-   (%index :initarg :%index :accessor %index
-          :initform nil)))
+; p:ComponentViewer
+(defclass component-viewer ()
+  ((%view
+     :accessor %view
+     :initarg :%view
+     :initform nil)
+   (%index
+     :accessor %index
+     :initarg :%index
+     :initform nil)))
 
 #+(or)
-(defmethod initialize-instance :after ((self ComponentViewer))
+(defmethod initialize-instance :after ((self component-viewer))
   (%add-repr-method-shortcut self (%view self))
   (%borrow-attribute self (%view self) (list "clear_representations"
                                              "_remove_representations_by_name"
@@ -20,16 +25,16 @@
                            "get_coodinates"
                            "n_frames")))
 
-(defmethod id ((self ComponentViewer))
+(defmethod id ((self component-viewer))
   (aref (ngl-component-ids (%view self)) (%index self)))
 
-(defmethod add-representations ((self ComponentViewer) repr-type &optional (selection "all") &rest kwargs &key &allow-other-keys)
+(defmethod add-representations ((self component-viewer) repr-type &optional (selection "all") &rest kwargs &key &allow-other-keys)
 ; TWB: Seems broken
 ;  (setf (aref kwargs "component") (%index self))
   (add-representation (%view self) :repr-type repr-type :selection selection kwargs))
 
 
-(defmethod %borrow-attribute ((self ComponentViewer) view attributes &key (trajectory-atts nil))
+(defmethod %borrow-attribute ((self component-viewer) view attributes &key (trajectory-atts nil))
   (declare (ignore trajectory-atts))
   (let ((traj (%get-traj-by-id view (id self))))
     (declare (ignore traj))

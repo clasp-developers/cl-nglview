@@ -12,11 +12,6 @@
 ;; Save up to 8 previous picks
 (defparameter *pick-history-depth* 16)
 
-(defclass component-viewer ()
-  ((%view :initarg :view :accessor view)
-   (%index :initarg :index :accessor index)))
-
-
 (defclass nglwidget (jupyter-widgets:dom-widget)
   ((%ngl-version :initarg :ngl-version
                  :accessor ngl-version
@@ -284,7 +279,7 @@
       ;                cl-jupyter:*default-special-bindings*)))
       (when parameters-p (setf (parameters widget) parameters))
       (cond
-        ((typep structure 'Trajectory)
+        ((typep structure 'trajectory)
          (let ((name (nglv::get-structure-name structure)))
            (add-trajectory widget structure :name name)))
         ((consp structure)
@@ -351,7 +346,7 @@
 
 
   #|
-   if isinstance(structure, Trajectory):
+   if isinstance(structure, trajectory):
    name = py_utils.get_name(structure, kwargs)
    self.add_trajectory(structure, name=name)
    elif isinstance(structure, (list, tuple)):
@@ -1022,7 +1017,7 @@
 
   Parameters
   ----------
-  obj : nglview.Structure or any object having 'get-structure-string' method or
+  obj : nglview.structure or any object having 'get-structure-string' method or
   string buffer (open(fn).read())
   '''
   kwargs2 = _camelize_dict(kwargs)
@@ -1085,8 +1080,8 @@ kwargs=kwargs2)
 
 (defmethod add-structure ((self nglwidget) structure &rest kwargs)
   (jupyter:inform :info nil "In add-structure  (loaded self) -> ~a   (already-constructed self) -> ~a" (loaded self) (already-constructed self))
-  (if (not (typep structure 'Structure))
-      (error "~s is not an instance of Structure" structure))
+  (if (not (typep structure 'structure))
+      (error "~s is not an instance of structure" structure))
   (apply '%load-data self structure kwargs)
   (setf (ngl-component-ids self) (append (ngl-component-ids self) (list (id structure))))
   (when (> (n-components self) 1)
@@ -1096,25 +1091,20 @@ kwargs=kwargs2)
 
 (defmethod add-trajectory ((widget nglwidget) trajectory &rest kwargs)
   (jupyter:inform :info nil "entered add-trajectory")
-  (let (#+(or)(backends *BACKENDS*)
-        (package-name nil))
-    (declare (ignore package-name))
-    ;;; Do stuff with backends
-    (let ((trajectory trajectory))
-      (apply '%load-data widget trajectory kwargs)
-      (setf (shown trajectory) t)
-      (setf (trajlist widget) (append (trajlist widget) (list trajectory)))
-      (%update-count widget)
-      (setf (ngl-component-ids widget) (append (ngl-component-ids widget) (list (id trajectory))))
-      (%update-component-auto-completion widget)
-      widget)))
+  (apply '%load-data widget trajectory kwargs)
+  (setf (shown trajectory) t)
+  (setf (trajlist widget) (append (trajlist widget) (list trajectory)))
+  (%update-count widget)
+  (setf (ngl-component-ids widget) (append (ngl-component-ids widget) (list (id trajectory))))
+  (%update-component-auto-completion widget)
+  widget)
 
 (defmethod add-pdbid ((widget nglwidget) pdbid)
   (error " I want something like thif but what is .format(pdbid)??(add-component widget rcsb://{}.pdb.format(pdbid)"))
 
 
 (defmethod add-component ((widget nglwidget) filename &rest kwargs)
-  (jupyter:inform :info nil "entered add-component")
+  (jupyter:inform :info widget "entered add-component")
   (apply '%load-data widget filename kwargs)
   (append (ngl-component-ids widget) (list (make-uuid t)))
   (%update-component-auto-completion widget))
@@ -1158,13 +1148,13 @@ kwargs=kwargs2)
                     :kwargs kwargs2)))
   (jupyter:inform :info nil "leaving %load-data"))
           
-(defmethod remove-component ((widget nglwidget) c)
-  (let ((component-id (if (typep component-id 'component-viewer)
-                          (progn
-                            (setf (view c) nil)
-                            (id c))
-                          c)))
-    (%clear-component-auto-completion widget)
+(defmethod remove-component (instance component-or-id)
+  (let ((component-id (if (typep component-or-id 'component-viewer)
+                        (progn
+                          (setf (%view component-or-id) nil)
+                          (id component-or-id))
+                        component-or-id)))
+    (%clear-component-auto-completion instance)
     (if (trajlist widget)
         (loop for traj in (trajlist widget)
               do (if (equal (id traj) component-id)
@@ -1258,7 +1248,7 @@ kwargs=kwargs2)
            (return traj)))
   nil)
 
-(defmethod hide ((self ComponentViewer))
+(defmethod hide ((self component-viewer))
   "set invisibility for given components (by their indices)"
   (%remote-call (%view self)
                 "setVisibility"
@@ -1271,7 +1261,7 @@ kwargs=kwargs2)
     (values)))
 
 
-(defmethod show ((self ComponentViewer))
+(defmethod show ((self component-viewer))
   "set invisibility for given components (by their indices)"
   (%remote-call (%view self)
                 "setVisiblity"
@@ -1354,7 +1344,8 @@ kwargs=kwargs2)
   return display.Image(self._image_data)
   |#
 
-(defmethod %clear-component-auto-completion ((widget nglwidget))
+; p:_clear_component_auto_completion
+(defun %clear-component-auto-completion (instance)
   (let ((index 0))
     (loop for id in (ngl-component-ids widget)
        do
@@ -1375,7 +1366,7 @@ kwargs=kwargs2)
   #+(or)(let ((trajids (loop for traj in (trajlist self) collect (id traj)))
               (index 0))
           (loop for cid in (ngl-component-ids widget)
-             do (let ((comp (make-instance 'ComponentViewer :%view widget :%index index))
+             do (let ((comp (make-instance 'component-viewer :%view widget :%index index))
                       (name (concatenate 'string "component_" (write-to-string index))))
                   (incf index)
                   (error "We need a setattr function!!!!")
@@ -1386,7 +1377,7 @@ kwargs=kwargs2)
   trajids = [traj.id for traj in self._trajlist]
 
   for index, cid in enumerate(self._ngl_component_ids):
-  comp = ComponentViewer(self, index) 
+  comp = component-viewer(self, index)
   name = 'component_' + str(index)
   setattr(self, name, comp)
 
@@ -1398,21 +1389,21 @@ kwargs=kwargs2)
 
 
 (defmethod %-getitem-- ((widget nglwidget) index)
-  "return ComponentViewer"
+  "return component-viewer"
   (let ((positive-index (get-positive-index index (length (ngl-component-ids widget)))))
-    (make-instance 'ComponentViewer :%view widget :%index positive-index))
+    (make-instance 'component-viewer :%view widget :%index positive-index))
   (error "Help! We don't have a py-utils thingy in %-getitem-- in widget.lisp"))
 
 
 (defmethod %-iter-- ((widget nglwidget))
-  "return ComponentViewer"
+  "return component-viewer"
   (let ((index 0))
     (declare (ignore index))
     (loop for item in (ngl-component-ids widget))
     (error "Implementer %-iter-- in widget.lisp")))
 #|
   def __iter__(self):
-  """return ComponentViewer
+  """return component-viewer
         """
   for i, _ in enumerate(self._ngl_component_ids):
   yield self[i]

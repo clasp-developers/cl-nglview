@@ -1,5 +1,7 @@
 (in-package :nglv)
 
+(defparameter +camera-types+ '("perspective" "orthographic"))
+
 (defun strip (string)
   (string-trim #(#\Space #\Newline #\Return) string))
 
@@ -370,7 +372,7 @@
         (setf (parameters (%view instance)) (list name (nth new-value option-labels)))))
     (jupyter-widgets:observe (%view instance) :%ngl-full-stage-parameters
       (lambda (view type nm old-value new-value source)
-        (declare (ignore view type nm old-value source))
+        (declare (ignore view type nm old-value new-value source))
         (setf (jupyter-widgets:widget-index widget)
           (position (getf (%ngl-full-stage-parameters (%view instance)) name)
                     option-labels :test #'string=))))
@@ -400,6 +402,7 @@
 ; panel manually. Also skipping the _relayout_master stuff since that is just a hack for not using
 ; either em units or a grid-box.
 (defun %make-widget-preference (self &key (width "100%"))
+  (declare (ignore width))
   (with-slots (widget-preference) self
     (setf widget-preference
           (make-instance 'jupyter-widgets:v-box
@@ -473,14 +476,13 @@
                                                   :description " Center"
                                                   :tooltip "center selected atoms"
                                                   :icon "bullseye"
-                                                  :%ngl-name "button-center-selection"
                                                   :on-click (list (lambda (button)
                                                                     (declare (ignore button))
                                                                     (center (%view self)
                                                                             :selection (jupyter-widgets:widget-value repr-selection)
                                                                             :component (jupyter-widgets:widget-value component-slider)))))
                                    ; Hide/Show button
-                                   (make-instance 'button
+                                   (make-instance 'jupyter-widgets:button
                                                   :description " Hide"
                                                   :tooltip "Hide/Show current representation"
                                                   :icon "eye-slash"
@@ -497,7 +499,7 @@
                                                                                     :target "Widget"
                                                                                     :args (list component repr-index (not hide)))))))
                                    ; Remove button
-                                   (make-instance 'button
+                                   (make-instance 'jupyter-widgets:button
                                                   :description " Remove"
                                                   :tooltip "Remove current representation"
                                                   :icon "trash"
@@ -603,7 +605,6 @@
                                :name (if repr-name-text
                                        (jupyter-widgets:widget-value repr-name-text)
                                        " "))))
-    ;(setf (%ngl-name widget) "repr_parameters_box")
     widget))
 
 ; p:_make_button_export_image
@@ -612,7 +613,7 @@
                                      :width +default-slider-width+))
          (style (make-instance 'jupyter-widgets:description-style
                                                              :description-width +default-text-width+))
-         (slider-factor (make-instance 'int-slider
+         (slider-factor (make-instance 'jupyter-widgets:int-slider
                                        :value 4 :min 1 :max 10
                                        :description "scale"
                                        :layout layout
@@ -621,27 +622,27 @@
          (checkbox-antialias (make-instance 'jupyter-widgets:toggle-button :value t :description "antialias"))
          (checkbox-trim (make-instance 'jupyter-widgets:toggle-button :value nil :description "trim"))
          (checkbox-transparent (make-instance 'jupyter-widgets:toggle-button :value nil :description "transparent"))
-         (filename-text (make-instance 'text
+         (filename-text (make-instance 'jupyter-widgets:text
                                        :value "Screenshot" :description "Filename"
                                        :style style))
-         (delay-text (make-instance 'float-text
+         (delay-text (make-instance 'jupyter-widgets:float-text
                                     :value 1
                                     :description "delay (s)"
                                     :tooltip "hello"
                                     :style style))
-         (start-text (make-instance 'int-text
+         (start-text (make-instance 'jupyter-widgets:int-text
                                     :value 0
                                     :description "start"
                                     :style style))
-         (stop-text (make-instance 'int-text
+         (stop-text (make-instance 'jupyter-widgets:int-text
                                    :value (count (%view self))
                                    :description "stop"
                                    :style style))
-         (step-text (make-instance 'int-text
+         (step-text (make-instance 'jupyter-widgets:int-text
                                    :value 1
                                    :description "step"
                                    :style style))
-         (button-movie-images (make-instance 'button
+         (button-movie-images (make-instance 'jupyter-widgets:button
                                              :description "Export Images")))
     (jupyter-widgets:on-button-click
       button-movie-images
@@ -676,7 +677,7 @@
 
 
 (defmethod %make-resize-notebook-slider ((self trajectory-player))
-  (make-instance 'int-slider
+  (make-instance 'jupyter-widgets:int-slider
                  :min 300 :max 2000 :description "resize notebook"
                  :on-trait-change (list
                                     (cons :value
@@ -774,7 +775,7 @@
 ; p:_make_repr_name_choices
 (defun %make-repr-name-choices (instance)
   (with-slots (widget-repr-choices widget-repr-slider) instance
-    (setf widget-repr-choices (make-instance 'dropdown))
+    (setf widget-repr-choices (make-instance 'jupyter-widgets:dropdown))
     (jupyter-widgets:observe widget-repr-choices :index
       (lambda (instance name type old-value new-value source)
         (declare (ignore instance name type old-value source))
@@ -882,39 +883,34 @@
       (let* ((extra-list (list
 			 (cons (%make-drag-widget self) "Drag")
 			 (cons (%make-spin-box self) "Spin")
-			 (cons (%make-widget-picked) "Picked")
-			 (cons (%make-repr-playground) "Quick")
-			 (cons (%make-export-image-widget) "Image")
+			 (cons (%make-widget-picked self) "Picked")
+			 (cons (%make-repr-playground self) "Quick")
+			 (cons (%make-export-image-widget self) "Image")
 			 (cons (%make-command-box self) "Command")))
 	     (extra-box (%make-delay-tab extra-list :selected-index 0)))
 	(setf (widget-extra self) extra-box)))
   (widget-extra self))
 
-(defmethod %make-theme-box ((self trajectory-player))
-  (if (not (widget-theme self))
-      (setf (widget-theme self) (apply #'make-instance 'box :children (list (%make-button-theme self) (%make-button-reset-theme self :hide-toolbar nil) (%make-button-reset-theme self :hide-toolbar t) (%make-button-clean-error-output self)))))
-  (widget-theme self))
-
 (defun %make-general-box (self)
   (unless (widget-general self)
-    (let ((step-slide (make-instance 'int-slider
+    (let ((step-slide (make-instance 'jupyter-widgets:int-slider
                                      :value (%step self) :min -100 :max 100 :description "step"
                                      :layout (make-instance 'jupyter-widgets:layout
                                                             :width +default-slider-width+)
                                      :style (make-instance 'jupyter-widgets:slider-style
                                                            :description-width +default-text-width+)))
-          (delay-text (make-instance 'int-slider
+          (delay-text (make-instance 'jupyter-widgets:int-slider
                                      :value (delay self) :min 10 :max 1000 :description "delay"
                                      :layout (make-instance 'jupyter-widgets:layout
                                                             :width +default-slider-width+)
                                      :style (make-instance 'jupyter-widgets:slider-style
                                                            :description-width +default-text-width+)))
-          (toggle-button-interpolate (make-instance 'toggle-button
+          (toggle-button-interpolate (make-instance 'jupyter-widgets:toggle-button
           :value (interpolate self) :description "Smoothing" :tooltip "smoothing trajectory"))
-          (background-color-picker (make-instance 'color-picker :value "white" :description "background"
+          (background-color-picker (make-instance 'jupyter-widgets:color-picker :value "white" :description "background"
                                :style (make-instance 'jupyter-widgets:description-style
                                                       :description-width +default-text-width+)))
-          (camera-type (make-instance 'dropdown :index (position (camera self) +camera-types+ :test #'string=) :%options-labels +camera-types+ :description "camera"
+          (camera-type (make-instance 'jupyter-widgets:dropdown :index (position (camera self) +camera-types+ :test #'string=) :%options-labels +camera-types+ :description "camera"
                                :style (make-instance 'jupyter-widgets:description-style
                                                       :description-width +default-text-width+))))
       (jupyter-widgets:link step-slide :value self :step)
@@ -932,17 +928,18 @@
     (let* ((center-button (%make-button-center self))
            (render-button (%show-download-image self))
            (center-render-hbox (%make-autofit (make-instance 'jupyter-widgets:h-box :children (list toggle-button-interpolate center-button render-button))))
-           (v0-left (make-instance 'vbox :children (list step-slide delay-text background-color-picker camera-type center-render-hbox))))
+           (v0-left (make-instance 'jupyter-widgets:v-box :children (list step-slide delay-text background-color-picker camera-type center-render-hbox))))
       ;(setf v0-left (%relayout-master v0-left :width "100%"))
       (setf (widget-general self) v0-left))))
   (widget-general self))
 
 ; p:_make_commmand_box
 (defun %make-command-box (self)
+  (declare (ignore self))
   (let ((widget-text-command (make-instance 'jupyter-widgets:text-area :continuous-update nil)))
     (jupyter-widgets:observe widget-text-command :value
       (lambda (instance name type old-value new-value source)
-        (declare (ignore name type old-value source))
+        (declare (ignore instance name type old-value source))
         (unless (zerop (length new-value)))
           (jupyter:javascript new-value t)
           (setf (jupyter-widgets:widget-value widget-text-command) "")))
@@ -967,7 +964,7 @@
 (defmethod %simplify-repr-control ((self trajectory-player))
   (loop for widget in (%saved-widgets (widget-repr self))
      do
-       (if (not (typep widget 'tab))
+       (if (not (typep widget 'jupyter-widgets:tab))
 	   (setf (display (layout widget)) "none")))
   (setf (display (layout (widget-repr-choices self))) "flex"
 	(selected-index (widget-accordion-repr-parameters self)) 0)
