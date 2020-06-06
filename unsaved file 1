@@ -1,0 +1,2 @@
+(defun is-url (src)
+  (handler-case (purl:url-scheme src) (purl::malformed-url () nil)))

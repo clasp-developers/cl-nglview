@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defparameter +color-schemes+ '(" " "picking" "random" "uniform" "atomindex"
 				    "residueindex" "chainindex" "modelindex" "sstruc"

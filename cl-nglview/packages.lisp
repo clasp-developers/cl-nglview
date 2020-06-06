@@ -13,34 +13,53 @@
            "TEST-QUEUE")
   (:documentation "Implements a thread-safe message queue."))
 
-(defpackage #:nglv
+(defpackage #:nglview
   (:use #:cl)
+  (:nicknames nglv)
+  (:local-nicknames (:j :jupyter)
+                    (:jw :jupyter-widgets))
   (:shadow #:count #:structure)
   (:export
-   #:make-nglwidget
-   #:nglwidget
-   #:shape
-   #:remote-call-thread-queue
-   #:wait-until-finished
-   #:show-aggregate
-   #:show-structure-file
-   #:trajectory
-   #:get-structure-name
-   #:get-structure-string
-   #:ext
-   #:trajectory
-   #:structure
-   #:add-axes
-   #:append-coordinates
-   #:get-coordinates
-   #:n-frames
-   #:set-coordinates
-   #:coordinates-dict
-   #:send-binary
-   #:show-pdbid
-   #:*backends*
-   #:clear-representations
-   #:add-representation
+    #:add-axes
+    #:add-component
+    #:add-representation
+    #:add-structure
+    #:add-trajectory
+    #:append-coordinates
+    #:clear-representations
+    #:coordinates-dict
+    #:ext
+    #:file-structure
+    #:fm
+    #:get-coordinates
+    #:get-structure-name
+    #:get-structure-string
+    #:hide-components
+    #:id
+    #:make-nglwidget
+    #:n-frames
+    #:nglwidget
+    #:params
+    #:path
+    #:pdbid
+    #:pdb-id-structure
+    #:remote-call-thread-queue
+    #:remove-all-components
+    #:remove-components
+    #:send-binary
+    #:set-coordinates
+    #:shape
+    #:show-aggregate
+    #:show-components
+    #:shown
+    #:show-pdbid
+    #:show-structure-file
+    #:structure
+    #:text
+    #:text-structure
+    #:trajectory
+    #:url
+    #:wait-until-finished
    ))
 
 (defpackage #:pythread

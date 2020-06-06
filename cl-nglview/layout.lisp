@@ -1,5 +1,5 @@
-(in-package :nglv)
-;;;https://github.com/drmeister/spy-ipykernel/blob/master/nglview/layout.py#L8
+(in-package :nglview)
+
 
 (defun make-form-item-layout ();Alright I think I know what I'm doing here
   (make-instance 'jupyter-widgets:layout :display "flex" :flex-flow "row"
@@ -14,9 +14,9 @@
     (loop for kid across (jupyter-widgets:widget-children box)
 	 do
 	 (let ((label-value ""))
-	   (if (and (description kid) (not (or (typep kid 'button) (typep kid 'toggle-button))))
+	   (if (and (description kid) (not (or (typep kid 'jupyter-widgets:button) (typep kid 'jupyter-widgets:toggle-button))))
 		(setf label-value (description kid) (description kid) ""))
-	   (if (typep kid 'button)
+	   (if (typep kid 'jupyter-widgets:button)
 		(setf box2 (make-instance 'jupyter-widgets:box :children (list kid) :layout form-item-layout))
 		(setf box2 (make-instance 'jupyter-widgets:box :children (list (make-instance 'jupyter-widgets:label :value label-value) kid) :layout form-item-layout)))
 	   (push box2 form-items)))))

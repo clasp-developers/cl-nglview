@@ -1,39 +1,38 @@
-(in-package :nglv)
-;;;https://github.com/drmeister/spy-ipykernel/blob/master/nglview/show.py#L37
-
-(jupyter:inform :info nil "widget-log show.lisp")
-
-(defparameter *all* (list "demo" "show_pdbid" "show_url" "show_text" "show_ase" "show_simpletraj" "show_mdtraj" "show_pytraj" "show_mdanalysis" "show_parmed" "show_rdkit" "show_structure_file" "show_htmd"))
+(in-package :nglview)
 
 (defun show-pdbid (pdbid &rest kwargs &key &allow-other-keys)
-  "Show PDB entry.
-    Examples - (defparameter w (nglv:show_pdbid \"3pqr\"))
-               (cl-ipywidgets::disp w)???????"
-  (jupyter:inform :info nil "show-pdbid ~s" pdbid)
-  (let ((structure (make-instance 'PdbIdStructure :pdbid pdbid)))
-       (apply #'make-nglwidget :structure structure kwargs)))
+  (let ((structure (make-instance 'pdb-id-structure :pdbid pdbid)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-url (url &rest kwargs &key &allow-other-keys)
-  (let ((kwargs2 (copy-list kwargs)) (view (make-nglwidget)))
-    (apply #'add-component view url kwargs2)
-    view))
+  (let ((view (make-nglwidget)))
+    (values view
+            (apply #'add-component view url kwargs))))
 
 (defun show-text (text &rest kwargs &key &allow-other-keys)
-  (let ((structure (make-instance 'TextStructure text)))
-    (apply #'make-nglwidget :structure structure kwargs)))
+  (let ((structure (make-instance 'text-structure :text text)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-ase (ase-atoms &rest kwargs &key &allow-other-keys)
-  (let ((structure (make-instance 'ASEStructure ase-atoms)))
-    (apply #'make-nglwidget :structure structure kwargs)))
+  (let ((structure (make-instance 'ASEStructure :ase-atoms ase-atoms)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-structure-file (path &rest kwargs &key &allow-other-keys)
   (let ((structure (make-instance 'file-structure :path path)))
-    (apply #'make-nglwidget :structure structure kwargs)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-file (path &rest kwargs &key &allow-other-keys)
   (let ((view (make-nglwidget)))
-    (apply #'add-component view kwargs)
-    view))
+    (values view
+            (apply #'add-component view path kwargs))))
 
 (defun show-simpletraj (traj &rest kwargs &key &allow-other-keys)
   (apply #'make-nglwidget :traj traj kwargs))
@@ -56,6 +55,7 @@
     (apply #'make-nglwidget :structure structure-trajectory kwargs)))
 
 (defun show-rdkit (rdkit-mol &rest kwargs &key &allow-other-keys)
+  (declare (ignore rdkit-mol kwargs))
   (error "show::show-rdkit error!!! Implement me!!!!"))
 #|
 def show_rdkit(rdkit_mol, **kwargs):

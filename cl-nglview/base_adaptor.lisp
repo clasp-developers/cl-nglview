@@ -1,21 +1,45 @@
-(in-package :nglv)
+(in-package :nglview)
 
-(jupyter:inform :info nil "base_adaptor.lisp")
+(defclass component ()
+  ((id
+     :accessor id
+     :initform (jupyter:make-uuid))
+   (name
+     :accessor name
+     :initform "")))
 
-(defclass Structure ()
-  ((ext :accessor ext :initform "pdb")
-   (params :accessor params :initform nil)
-   (id :accessor id :initform (jupyter:make-uuid))))
+(defmethod id ((value string))
+  value)
 
-(defmethod get-structure-string((Structure Structure))
-  (error "If you are getting this error, it's because you made an instance of the Structure parent class. Please be more specific and create an instnace of a structure child class. Thanks!"))
 
-(defclass Trajectory ()
-  ((id :accessor id :initform (jupyter:make-uuid))
-   (shown :accessor shown :type bool :initform t)))
+; p:Structure
+(defclass structure (component)
+  ((ext
+     :accessor ext
+     :initarg :ext
+     :initform "pdb")
+   (params
+     :accessor params
+     :initform nil
+     :type list)))
 
-(defmethod get-coordinates ((Trajectory Trajectory) index)
-  (error "Error in get-coordinates: Not Implemented Error!!! Python code not implemented"))
+; p:get_structure_string
+(defgeneric get-structure-string (instance)
+  (:documentation "Get the structure string assocated with the instance"))
 
-(defmethod n-frames ((Trajectory Trajectory))
-  (error "Error in n-frames: Not Implemented Error!!! Python code not implemented"))
+
+; p:Trajectory
+(defclass trajectory (component)
+  ((shown
+     :accessor shown
+     :initform t
+     :type bool)))
+
+; p:get_coordinates
+(defgeneric get-coordinates (instance index)
+  (:documentation "Get the coordinates assocated with the instance"))
+
+; p:n_frames
+(defgeneric n-frames (instance)
+  (:documentation "Get the number of frames assocated with the instance"))
+
