@@ -25,7 +25,6 @@
                (:file "layout")
                (:file "shape")
                (:file "pythread")
-               (:file "component")
                (:file "stage")
                (:file "base_adaptor")
                (:file "adaptor")

@@ -64,8 +64,9 @@
 
 ; p:is_url
 (defun is-url (instance)
-  (handler-case
-      (purl:url-scheme (src instance))
-    (purl::malformed-url ()
-      nil)))
+  (and (typep instance 'string)
+    (handler-case
+        (purl:url-scheme (src instance))
+      (purl::malformed-url ()
+        nil))))
 

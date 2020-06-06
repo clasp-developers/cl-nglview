@@ -2,29 +2,37 @@
 
 (defun show-pdbid (pdbid &rest kwargs &key &allow-other-keys)
   (let ((structure (make-instance 'pdb-id-structure :pdbid pdbid)))
-       (apply #'make-nglwidget :structure structure kwargs)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-url (url &rest kwargs &key &allow-other-keys)
-  (let ((kwargs2 (copy-list kwargs)) (view (make-nglwidget)))
-    (apply #'add-component view url kwargs2)
-    view))
+  (let ((view (make-nglwidget)))
+    (values view
+            (apply #'add-component view url kwargs))))
 
 (defun show-text (text &rest kwargs &key &allow-other-keys)
   (let ((structure (make-instance 'text-structure :text text)))
-    (apply #'make-nglwidget :structure structure kwargs)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-ase (ase-atoms &rest kwargs &key &allow-other-keys)
   (let ((structure (make-instance 'ASEStructure :ase-atoms ase-atoms)))
-    (apply #'make-nglwidget :structure structure kwargs)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-structure-file (path &rest kwargs &key &allow-other-keys)
   (let ((structure (make-instance 'file-structure :path path)))
-    (apply #'make-nglwidget :structure structure kwargs)))
+    (values (apply #'make-nglwidget :structure structure kwargs)
+            (id structure)
+            (structure))))
 
 (defun show-file (path &rest kwargs &key &allow-other-keys)
   (let ((view (make-nglwidget)))
-    (apply #'add-component view kwargs)
-    view))
+    (values view
+            (apply #'add-component view path kwargs))))
 
 (defun show-simpletraj (traj &rest kwargs &key &allow-other-keys)
   (apply #'make-nglwidget :traj traj kwargs))

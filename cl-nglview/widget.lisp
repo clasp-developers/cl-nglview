@@ -13,91 +13,108 @@
 (defparameter *pick-history-depth* 16)
 
 (defclass nglwidget (jupyter-widgets:dom-widget)
-  ((%ngl-version :initarg :ngl-version
-                 :accessor ngl-version
-                 :trait :unicode
-                 :initform "")
-   (%image-data :initarg :image-data
-                :trait :unicode
-                :initform "")
-   (frame :initarg :frame
-          :accessor frame
-          :type Integer
-          :initform 0
-          :trait :int)
-   (count :initarg :count
-          :accessor count
-          :type Integer
-          :initform 1
-          :trait :int)
-   (background :initarg :background
-               :accessor background
-               :trait :color
-               :initform "white") ; I think this is deprecated
-   (loaded :initarg :loaded
-           :accessor loaded
-           :type boolean
-           :initform nil)
-   (picked :initarg :picked
-            :accessor picked
-            :trait :json
-            :initform nil)
-   (%pick-history :initarg :pick-history
-                  :accessor pick-history
-                  :type list
-                  :initform nil)
-   (n-components :initarg :n-components
-                  :accessor n-components
-                  :type integer
-                  :initform 0
-                  :trait :int)
-   (%scene-position :initarg :scene-position
-                    :accessor scene-position
-                    :trait :dict
-                    :initform nil)
-   (%scene-rotation :initarg :scene-rotation
-                    :accessor scene-rotation
-                    :trait :dict
-                    :initform nil)
-   (%first-time-loaded :initarg :first-time-loaded
-                       :accessor first-time-loaded
-                       :type boolean
-                       :initform T)
+  ((%ngl-version
+     :accessor ngl-version
+     :initarg :ngl-version
+     :initform ""
+     :trait :unicode)
+   (%image-data
+     :initarg :image-data
+     :initform ""
+     :trait :unicode)
+   (frame
+     :accessor frame
+     :initarg :frame
+     :initform 0
+     :type Integer
+     :trait :int)
+   (count
+     :accessor count
+     :initarg :count
+     :initform 1
+     :type Integer
+     :trait :int)
+   (background
+     :accessor background
+     :initarg :background
+     :initform "white" ; I think this is deprecated
+     :trait :color)
+   (loaded
+     :initarg :loaded
+     :accessor loaded
+     :type boolean
+     :initform nil)
+   (picked
+     :initarg :picked
+     :accessor picked
+     :trait :json
+     :initform nil)
+   (%pick-history
+     :initarg :pick-history
+     :accessor pick-history
+     :type list
+     :initform nil)
+   (n-components
+     :initarg :n-components
+     :accessor n-components
+     :type integer
+     :initform 0
+     :trait :int)
+   (%scene-position
+     :initarg :scene-position
+     :accessor scene-position
+     :trait :dict
+     :initform nil)
+   (%scene-rotation
+     :initarg :scene-rotation
+     :accessor scene-rotation
+     :trait :dict
+     :initform nil)
+   (%first-time-loaded
+     :initarg :first-time-loaded
+     :accessor first-time-loaded
+     :type boolean
+     :initform T)
    ;; hack to always display movie
-   (%n-dragged-files :initarg :n-dragged-files
-                     :accessor n-dragged-files
-                     :type integer
-                     :initform 0
-                     :trait :int)
+   (%n-dragged-files
+     :initarg :n-dragged-files
+     :accessor n-dragged-files
+     :type integer
+     :initform 0
+     :trait :int)
    ;; TODO: remove parameters?
-   (parameters :initarg :parameters
-                :accessor parameters
-                :initform nil) ; not synchronized https://github.com/drmeister/spy-ipykernel/blob/master/nglview/widget.py#L124
+   (parameters
+     :initarg :parameters
+     :accessor parameters
+     :initform nil) ; not synchronized https://github.com/drmeister/spy-ipykernel/blob/master/nglview/widget.py#L124
    (%ngl-full-stage-parameters
-                               :accessor %ngl-full-stage-parameters
-                               :trait :plist-camel-case
-                               :initform nil)
+     :accessor %ngl-full-stage-parameters
+     :trait :plist-camel-case
+     :initform nil)
    (%ngl-full-stage-parameters-embed
-                                     :accessor %ngl-full-stage-parameters-embed
-                                     :trait :plist-camel-case
-                                     :initform nil)
+     :accessor %ngl-full-stage-parameters-embed
+     :trait :plist-camel-case
+     :initform nil)
    (%ngl-original-stage-parameters
-                                   :accessor %ngl-original-stage-parameters
-                                   :trait :plist-camel-case
-                                   :initform nil)
+     :accessor %ngl-original-stage-parameters
+     :trait :plist-camel-case
+     :initform nil)
    ;; Not sync'd
-   (%coordinates-dict :initarg :coordinates-dict
-                      :accessor coordinates-dict
-                      :initform nil)
-   (%camera-str :initarg :camera-str
-                :accessor camera-str
-                :trait :unicode
-                :initform "orthographic") ; probably need validate for following values "perspective" "orthographic"
-   (%camera-orientation :initarg :camera-orientation
-                        :accessor camera-orientation
-                        :type list
-                        :initform nil
-                        :trait :list)
+   (%coordinates-dict
+     :accessor coordinates-dict
+     :initarg :coordinates-dict
+     :initform nil)
+   (%camera-str
+     :accessor camera-str
+     :initarg :camera-str
+     :initform "orthographic" ; probably need validate for following values "perspective" "orthographic"
+     :trait :unicode)
+   (%camera-orientation
+     :accessor camera-orientation
+     :initarg :camera-orientation
+     :initform nil
+     :type list
+     :trait :list)
    (%synced-model-ids ; p:_synced_model_ids
      :accessor %synced-repr-ids
      :initform nil
@@ -110,76 +127,106 @@
      :accessor %ngl-view-id
      :initform nil
      :trait :list)
-   (%ngl-repr-dict :initarg :ngl-repr-dict
-                   :accessor ngl-repr-dict
-                   :trait :json
-                   :initform nil)
-   (%ngl-component-ids :initarg :ngl-component-ids
-                       :accessor ngl-component-ids
-                       :type list
-                       :initform nil)
-   (%ngl-component-names :initarg :ngl-component-names
-                         :accessor %ngl-component-names
-                         :type list
-                         :initform nil)
-   (%already-constructed :initarg :already-constructed
-                         :accessor already-constructed
-                         :type boolean
-                         :initform nil)
-   (%ngl-msg :initarg :ngl-msg
-             :accessor ngl-msg
-             :type (or string null)
-             :initform nil)
-   (%send-binary :initarg :send-binary
-                 :accessor send-binary
-                 :type boolean
-                 :initform t)
-   (%init-gui :initarg :init-gui
-              :accessor init-gui
-              :type boolean
-              :initform nil)
-   (%hold-image :initarg :hold-image
-                :accessor hold-image
-                :type boolean
-                :initform nil)
-   (%ngl-serialize :initarg :ngl-serialize
-                   :accessor ngl-serialize
-                   :type boolean
-                   :initform nil
-                   :trait :bool)
-   (%ngl-msg-archive :initarg :ngl-msg-archive
-                     :accessor ngl-msg-archive
-                     :type list
-                     :initform nil
-                     :trait :list)
-   (%ngl-coordinate-resource :initarg :ngl-coordinate-resource
-                             :accessor ngl-coordinate-resource
-                             :trait :dict
-                             :initform nil)
-   (%representations :initarg :representations
-                     :accessor representations)
+   (%ngl-repr-dict
+     :accessor ngl-repr-dict
+     :initarg :ngl-repr-dict
+     :initform nil
+     :trait :json)
+   (%ngl-component-ids
+     :accessor %ngl-component-ids
+     :initarg :%ngl-component-ids
+     :initform (make-array 10 :fill-pointer 0 :adjustable t :element-type 'string))
+   (%ngl-component-names
+     :accessor %ngl-component-names
+     :initarg :%ngl-component-names
+     :initform (make-array 10 :fill-pointer 0 :adjustable t :element-type 'string))
+   (%already-constructed
+     :initarg :already-constructed
+     :accessor already-constructed
+     :type boolean
+     :initform nil)
+   (%ngl-msg
+     :initarg :ngl-msg
+     :accessor ngl-msg
+     :type (or string null)
+     :initform nil)
+   (%send-binary
+     :initarg :send-binary
+     :accessor send-binary
+     :type boolean
+     :initform t)
+   (%init-gui
+     :initarg :init-gui
+     :accessor init-gui
+     :type boolean
+     :initform nil)
+   (%hold-image
+     :initarg :hold-image
+     :accessor hold-image
+     :type boolean
+     :initform nil)
+   (%ngl-serialize
+     :initarg :ngl-serialize
+     :accessor ngl-serialize
+     :type boolean
+     :initform nil
+     :trait :bool)
+   (%ngl-msg-archive
+     :initarg :ngl-msg-archive
+     :accessor ngl-msg-archive
+     :type list
+     :initform nil
+     :trait :list)
+   (%ngl-coordinate-resource
+     :initarg :ngl-coordinate-resource
+     :accessor ngl-coordinate-resource
+     :trait :dict
+     :initform nil)
+   (%representations
+     :initarg :representations
+     :accessor representations)
    ;; internal variables
-   (%gui :initarg :%gui :accessor %gui :initform nil)
-;;   (%init-gui :initarg :gui :accessor gui :initform nil) ;; WHY? does nglview does this
-   (%theme :initarg :theme :accessor theme :initform "default")
-   (%widget-image :initarg :widget-image :accessor widget-image
-                  :initform (make-instance 'jupyter-widgets:image :width 900))
-   (%image-array :initarg :image-array :accessor image-array :initform #())
-   (%event :initarg :event :accessor event :initform (make-instance 'pythread:event))
+   (%gui
+     :initarg :%gui
+     :accessor %gui
+     :initform nil)
+   ;;   (%init-gui :initarg :gui :accessor gui :initform nil) ;; WHY? does nglview does this
+   (%theme
+     :initarg :theme
+     :accessor theme
+     :initform "default")
+   (%widget-image
+     :initarg :widget-image
+     :accessor widget-image
+     :initform (make-instance 'jupyter-widgets:image :width 900))
+   (%image-array
+     :initarg :image-array
+     :accessor image-array
+     :initform #())
+   (%event
+     :initarg :event
+     :accessor event
+     :initform (make-instance 'pythread:event))
    (%ngl-displayed-callbacks-before-loaded-reversed
-    :initarg :ngl-displayed-callbacks-before-loaded-reversed
-    :accessor ngl-displayed-callbacks-before-loaded-reversed
-    :initform nil)
+     :initarg :ngl-displayed-callbacks-before-loaded-reversed
+     :accessor ngl-displayed-callbacks-before-loaded-reversed
+     :initform nil)
    (%ngl-displayed-callbacks-after-loaded-reversed
-    :initarg :ngl-displayed-callbacks-after-loaded-reversed
-    :accessor ngl-displayed-callbacks-after-loaded-reversed
-    :initform nil)
-   (%shape :initarg :shape :accessor shape
-           :initform (make-instance 'shape))
-   (%stage :initarg :stage :accessor stage)
-   (%control :initarg :control :accessor control)
-;;; FIXME:  Would this be a Clasp mp:PROCESS??
-;;;   (%handle-msg-thread :initarg :handle-msg-thread :accessor handle-msg-thread :initform :threading.thread)
+     :initarg :ngl-displayed-callbacks-after-loaded-reversed
+     :accessor ngl-displayed-callbacks-after-loaded-reversed
+     :initform nil)
+   (%shape
+     :initarg :shape
+     :accessor shape
+     :initform (make-instance 'shape))
+   (%stage
+     :initarg :stage
+     :accessor stage)
+   (%control
+     :initarg :control
+     :accessor control)
+   ;;; FIXME:  Would this be a Clasp mp:PROCESS??
+   ;;;   (%handle-msg-thread :initarg :handle-msg-thread :accessor handle-msg-thread :initform :threading.thread)
    #|
    self._handle_msg_thread = threading.Thread(target=self.on_msg,
    args=(self._ngl_handle_msg,))
@@ -189,22 +236,22 @@
    |#
    ;; Only one remote-call-thread in pythread:*remote-call-thread*
    #+(or)(%remote-call-thread
-    :initarg :remote-call-thread
-    :accessor remote-call-thread
-    :allocation :class
-    :initform pythread:*remote-call-thread*)
+           :initarg :remote-call-thread
+           :accessor remote-call-thread
+           :allocation :class
+           :initform pythread:*remote-call-thread*)
    ;; Only one remote-call-thread-queue in pythread:*remote-call-thread-queue*
    #+(or)(%remote-call-thread-queue
-    :initarg :remote-call-thread-queue
-    :accessor remote-call-thread-queue
-    :allocation :class
-    :initform pythread:*remote-call-thread-queue*)
+           :initarg :remote-call-thread-queue
+           :accessor remote-call-thread-queue
+           :allocation :class
+           :initform pythread:*remote-call-thread-queue*)
    (%handle-msg-thread
-    :accessor handle-msg-thread
-    :initform nil)
+     :accessor handle-msg-thread
+     :initform nil)
    ;; keep track but making copy
    ;;; FIXME - fix this nonsense below
-#||
+   #||
         self._set_unsync_camera()
         self.selector = str(uuid.uuid4()).replace('-', '')
         self._remote_call('setSelector', target='Widget', args=[self.selector,])
@@ -213,20 +260,23 @@
         self.player = trajectory-player(self)
         self._already_constructed = True
    ||#
-   (%trajlist :initform nil
-              :accessor trajlist)
-   (%player :accessor player :initform nil)
-   (%init-representations :initarg :init-representations
-                     :accessor init-representations
-                     :initform nil)
-   )
+   (%trajlist
+     :initform nil
+     :accessor %trajlist)
+   (%player
+     :accessor player
+     :initform nil)
+   (%init-representations
+     :initarg :init-representations
+     :accessor init-representations
+     :initform nil))
   (:default-initargs
-   :%view-name "NGLView"
-   :%view-module "nglview-js-widgets"
-   :%view-module-version +frontend-version+
-   :%model-name "NGLModel"
-   :%model-module "nglview-js-widgets"
-   :%model-module-version +frontend-version+)
+    :%view-name "NGLView"
+    :%view-module "nglview-js-widgets"
+    :%view-module-version +frontend-version+
+    :%model-name "NGLModel"
+    :%model-module "nglview-js-widgets"
+    :%model-module-version +frontend-version+)
   (:metaclass jupyter-widgets:trait-metaclass))
 
 (jupyter-widgets:register-widget nglwidget)
@@ -301,6 +351,17 @@
       widget)))
 
 
+(defun component-index-and-id (instance component)
+  (with-slots (%ngl-component-ids)
+              instance
+    (jupyter:inform :info instance "component-index-and-id ~A ~A" component %ngl-component-ids)
+    (if (typep component 'integer)
+      (values component
+              (elt %ngl-component-ids component))
+      (values (position (id component) %ngl-component-ids :test #'equal)
+              (id component)))))
+
+
 (defmethod %set-serialization ((self nglwidget) &optional frame-range)
   (setf (ngl-serialize self) t)
   (setf (ngl-msg-archive self)
@@ -311,7 +372,7 @@
     (when frame-range
       #|| ;; Finish set-serialization
       (loop for t-index from 0
-      for traj in (trajlist self)
+      for traj in (%trajlist self)
       do (setf (elt resource t-index) (list))
       (loop for 
       for f_index in range(*frame_range):
@@ -448,9 +509,10 @@
   (setf (parameters object) (list :background-color new)))
 
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%n-dragged-file)) old new source)
-  (declare (ignore type name old source))
-  (when (and (= (- new old) 1) (slot-boundp self '%ngl-component-ids))
-    (setf (ngl-component-ids self) (append (ngl-component-ids self) (make-uuid t)))))
+  (declare (ignore type name source))
+  (when (= (- new old) 1)
+    (vector-push-extend (jupyter:make-uuid)
+                        (%ngl-component-ids self))))
 
 ; p:_handle_n_components_changed
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new source)
@@ -463,7 +525,7 @@
           (setf (jupyter-widgets:widget-max component-slider) (1- new))))
       (let ((component-dropdown (widget-component-dropdown (player self))))
         ;; component_dropdown.options = tuple(self._ngl_component_names)
-        (setf (jupyter-widgets:widget-%options-labels component-dropdown) (%ngl-component-names self))
+        (setf (jupyter-widgets:widget-%options-labels component-dropdown) (copy-seq (%ngl-component-names self)))
         (when (= new 0)
           (setf (jupyter-widgets:widget-%options-labels component-dropdown) nil
                 (jupyter-widgets:widget-value component-dropdown) " "
@@ -518,7 +580,7 @@
 
 
 (defmethod %update-count ((widget nglwidget))
-  (setf (count widget) (apply #'max (loop for traj in (trajlist widget) collect (n-frames traj))))
+  (setf (count widget) (apply #'max (loop for traj in (%trajlist widget) collect (n-frames traj))))
   (values))
 
 
@@ -712,9 +774,9 @@
   (values))
 
 ;;; This performs the rest of the @representations.setter
-(defmethod (setf representations) :after (value (self nglwidget))
-  (loop for component in (ngl-component-ids self)
-        do (set-representations reps (representations self))))
+(defmethod (setf representations) :after (value (instance nglwidget))
+  (dotimes (index (length (%ngl-component-ids instance)))
+    (set-representation instance value :component index)))
 
 (defmethod update-representation ((widget nglwidget) &optional (component 0)
                                   (repr-index 0) &rest parameters)
@@ -781,17 +843,17 @@
                    :repr-index repr-index
                    :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (ngl-repr-dict widget) c) r) "type"))))
 
-(defmethod %set-coordinates ((widget nglwidget) index)
-  "Update coordinates for all trajectories at index-th frame"
-  (when (and (slot-boundp widget '%trajlist) (trajlist widget))
-    (let ((coordinates-dict ()))
+; (defmethod %set-coordinates ((widget nglwidget) index)
+;   "Update coordinates for all trajectories at index-th frame"
+;   (when (and (slot-boundp widget '%trajlist) (%trajlist widget))
+;     (let ((coordinates-dict ()))
       ;;
       ;; TODO: Do something for interpolation
       ;;
-      (loop for trajectory in (trajlist widget)
-            for traj-index = (position (id trajectory) (ngl-component-ids widget))
-            do (push (cons traj-index (nglv::get-coordinates trajectory index)) coordinates-dict))
-      (set-coordinates widget coordinates-dict))))
+;       (loop for trajectory in (%trajlist widget)
+;             for traj-index = (position (id trajectory) (%ngl-component-ids widget))
+;             do (push (cons traj-index (nglv::get-coordinates trajectory index)) coordinates-dict))
+;       (set-coordinates widget coordinates-dict))))
 
 (defun ensure-simple-vector-float (coordinates)
   (if (typep coordinates '(simple-array single-float *))
@@ -1077,39 +1139,38 @@ kwargs=kwargs2)
                 :args (list component repr-index))
   (values))
 
-
-(defmethod add-structure ((self nglwidget) structure &rest kwargs)
+; p:add_structure
+(defun add-structure (self structure &rest kwargs)
   (jupyter:inform :info nil "In add-structure  (loaded self) -> ~a   (already-constructed self) -> ~a" (loaded self) (already-constructed self))
   (if (not (typep structure 'structure))
       (error "~s is not an instance of structure" structure))
   (apply '%load-data self structure kwargs)
-  (setf (ngl-component-ids self) (append (ngl-component-ids self) (list (id structure))))
+  (vector-push-extend (id structure) (%ngl-component-ids self))
   (when (> (n-components self) 1)
-    (center self :component (- (length (ngl-component-ids self)) 1)))
-  (%update-component-auto-completion self)
-  structure)
+    (center self :component (- (length (%ngl-component-ids self)) 1)))
+  (id structure))
 
-(defmethod add-trajectory ((widget nglwidget) trajectory &rest kwargs)
+; p:add-trajectory
+(defun add-trajectory (widget trajectory &rest kwargs)
   (jupyter:inform :info nil "entered add-trajectory")
   (apply '%load-data widget trajectory kwargs)
   (setf (shown trajectory) t)
-  (setf (trajlist widget) (append (trajlist widget) (list trajectory)))
+  (setf (%trajlist widget) (append (%trajlist widget) (list trajectory)))
   (%update-count widget)
-  (setf (ngl-component-ids widget) (append (ngl-component-ids widget) (list (id trajectory))))
-  (%update-component-auto-completion widget)
-  widget)
+  (vector-push-extend (id trajectory) (%ngl-component-ids self))
+  (id trajectory))
 
-(defmethod add-pdbid ((widget nglwidget) pdbid)
-  (error " I want something like thif but what is .format(pdbid)??(add-component widget rcsb://{}.pdb.format(pdbid)"))
+; p:add_pdbid
+(defun add-pdbid (instance pdbid)
+  (add-component instance (format nil "rcsb://~A.pdb" pdbid)))
 
+; p:add_component
+(defun add-component (instance filename &rest kwargs)
+  (apply '%load-data instance filename kwargs)
+  (vector-push-extend (jupyter:make-uuid) (%ngl-component-ids self)))
 
-(defmethod add-component ((widget nglwidget) filename &rest kwargs)
-  (jupyter:inform :info widget "entered add-component")
-  (apply '%load-data widget filename kwargs)
-  (append (ngl-component-ids widget) (list (make-uuid t)))
-  (%update-component-auto-completion widget))
-
-(defmethod %load-data ((widget nglwidget) obj &key kwargs)
+; p:_load_data
+(defun %load-data (widget obj &key kwargs)
   (jupyter:inform :info nil "entered %load-data ~A" kwargs)
   (check-type kwargs list)
   (let* ((kwargs2 (camelize-dict kwargs))
@@ -1141,33 +1202,30 @@ kwargs=kwargs2)
                                ("data" url)
                                ("binary" :false)))))
     (let ((name (get-name obj :dictargs kwargs2)))
-      (setf (%ngl-component-names widget) (append (%ngl-component-names widget) name))
+      (vector-push-extend name (%ngl-component-names widget))
       (%remote-call widget "loadFile"
                     :target "Stage"
                     :args args
                     :kwargs kwargs2)))
   (jupyter:inform :info nil "leaving %load-data"))
-          
-(defmethod remove-component (instance component-or-id)
-  (let ((component-id (if (typep component-or-id 'component-viewer)
-                        (progn
-                          (setf (%view component-or-id) nil)
-                          (id component-or-id))
-                        component-or-id)))
-    (%clear-component-auto-completion instance)
-    (if (trajlist widget)
-        (loop for traj in (trajlist widget)
-              do (if (equal (id traj) component-id)
-                     (remove traj (trajlist widget) :test #'equal))))
-    (let ((component-index (aref (ngl-component-ids widget) component-id)))
-      (remove component-id (ngl-component-ids widget) :test #'equal)
-      (remove component-index (%ngl-component-names widget))
-      ; Should that have been pop not remove???
-      (%remote-call widget
-                    "removeComponent"
-                    :target "Stage"
-                    :args (list component-index)))))
 
+; p:remove_component
+(defun remove-components (instance &rest components)
+  (with-slots (%trajlist %ngl-component-ids %ngl-component-names)
+              instance
+    (dolist (component components)
+      (multiple-value-bind (index id)
+                           (component-index-and-id instance component)
+        (jupyter:inform :info instance "Remove ~A ~A" index id)
+        (setf %trajlist (remove id %trajlist :test #'equal :key #'id))
+        (remove-elt %ngl-component-ids index)
+        (remove-elt %ngl-component-names index)
+        (%remote-call widget
+                      "removeComponent"
+                      :target "Stage"
+                      :args (list index))))))
+
+; p:_remote_call
 (defun %remote-call (widget method-name &key (target "Widget") args kwargs)
   "call NGL's methods from Common Lisp
         
@@ -1240,83 +1298,31 @@ kwargs=kwargs2)
   (jupyter:inform :info nil "leaving %remote-call ~a" method-name)
   t)
 
+(defun set-visibility (instance visibility &rest components)
+  "set visibility for given components (by their indicies or ids)"
+  (with-slots (%trajlist)
+              instance
+    (dolist (component components)
+      (multiple-value-bind (index id)
+                           (component-index-and-id instance component)
+        (dolist (traj %trajlist)
+          (when (equal (id traj) id)
+            (setf (shown traj) visibility)))
+        (%remote-call instance
+                      "setVisibility"
+                      :target "compList"
+                      :args (list visibility)
+                      :kwargs (list (cons "component_index" index)))))))
 
-(defmethod %get-traj-by-id ((widget nglwidget) itsid)
-  (loop for traj in (trajlist widget)
-     do
-       (if (equal (id traj) itsid)
-           (return traj)))
-  nil)
+; p:hide
+(defun hide-components (instance &rest components)
+  "Hide given components (by their indicies or ids)"
+  (apply #'set-visibility instance nil components))
 
-(defmethod hide ((self component-viewer))
-  "set invisibility for given components (by their indices)"
-  (%remote-call (%view self)
-                "setVisibility"
-                :target "compList"
-                :args (list nil)
-                :kwargs (list (cons "component_index" (%index self))))
-  (let ((traj (%get-traj-by-id (%view self) (id self))))
-    (if traj
-        (setf (shown traj) nil))
-    (values)))
-
-
-(defmethod show ((self component-viewer))
-  "set invisibility for given components (by their indices)"
-  (%remote-call (%view self)
-                "setVisiblity"
-                :target "compList"
-                :args (list t)
-                :kwargs (list (cons "component_index" (%index self))))
-  (let ((traj (%get-traj-by-id (%view self) (id self))))
-    (if traj
-        (setf (shown traj) t))
-    (values)))
-
-
-(defmethod show-only ((self nglwidget) &optional (indices "all"))
-  (declare (ignore self indices))
-  (error "Finish show-only")
-  #|
-  def show_only(self, indices='all'):
-  """set visibility for given components (by their indices)
-
-        Parameters
-        ----------
-        indices : {'all', array-like}, component index, default 'all'
-        """
-  traj_ids = set(traj.id for traj in self._trajlist)
-
-  if indices == 'all':
-  indices_ = set(range(self.n_components))
-  else:
-  indices_ = set(indices)
-
-  for index, comp_id in enumerate(self._ngl_component_ids):
-  if comp_id in traj_ids:
-  traj = self._get_traj_by_id(comp_id)
-  else:
-  traj = None
-  if index in indices_:
-  args = [
-  True,
-  ]
-  if traj is not None:
-  traj.shown = True
-  else:
-  args = [
-  False,
-  ]
-  if traj is not None:
-  traj.shown = False
-
-  self._remote_call(
-                "setVisibility",
-                target='compList',
-                args=args,
-                kwargs={'component_index': index})
-  |#)
-
+; p:show
+(defun show-components (instance &rest components)
+  "Show for given components (by their indicies or ids)"
+  (apply #'set-visibility instance t components))
 
 
 (defmethod %js-console ((widget nglwidget))
@@ -1344,70 +1350,6 @@ kwargs=kwargs2)
   return display.Image(self._image_data)
   |#
 
-; p:_clear_component_auto_completion
-(defun %clear-component-auto-completion (instance)
-  (let ((index 0))
-    (loop for id in (ngl-component-ids widget)
-       do
-         (let ((name (concatenate 'string "component_" (write-to-string index))))
-           (declare (ignore name))
-           (incf index)
-           (error "WE NEED A DELATTR IN %clear-component-auto-completion in widget.lisp")))))
-#|
-  def _clear_component_auto_completion(self):
-  for index, _ in enumerate(self._ngl_component_ids):
-  name = 'component_' + str(index)
-  delattr(self, name)
-  |#
-
-
-(defmethod %update-component-auto-completion ((self NGLWidget))
-  #+(or)(warn "Do something for %update-component-auto-completion")
-  #+(or)(let ((trajids (loop for traj in (trajlist self) collect (id traj)))
-              (index 0))
-          (loop for cid in (ngl-component-ids widget)
-             do (let ((comp (make-instance 'component-viewer :%view widget :%index index))
-                      (name (concatenate 'string "component_" (write-to-string index))))
-                  (incf index)
-                  (error "We need a setattr function!!!!")
-                  (error "we need an in function! Maybe we have one. %update-component-auto-completion in widget.lisp")))))
-
-#|
-  def _update_component_auto_completion(self):
-  trajids = [traj.id for traj in self._trajlist]
-
-  for index, cid in enumerate(self._ngl_component_ids):
-  comp = component-viewer(self, index)
-  name = 'component_' + str(index)
-  setattr(self, name, comp)
-
-
-  if cid in trajids:
-  traj_name = 'trajectory_' + str(trajids.index(cid))
-  setattr(self, traj_name, comp)
-  |#
-
-
-(defmethod %-getitem-- ((widget nglwidget) index)
-  "return component-viewer"
-  (let ((positive-index (get-positive-index index (length (ngl-component-ids widget)))))
-    (make-instance 'component-viewer :%view widget :%index positive-index))
-  (error "Help! We don't have a py-utils thingy in %-getitem-- in widget.lisp"))
-
-
-(defmethod %-iter-- ((widget nglwidget))
-  "return component-viewer"
-  (let ((index 0))
-    (declare (ignore index))
-    (loop for item in (ngl-component-ids widget))
-    (error "Implementer %-iter-- in widget.lisp")))
-#|
-  def __iter__(self):
-  """return component-viewer
-        """
-  for i, _ in enumerate(self._ngl_component_ids):
-  yield self[i]
-  |#    
 
 (defmethod detach ((widget nglwidget) &key (split nil))
   "detach player from its original container."
@@ -1478,7 +1420,7 @@ kwargs=kwargs2)
 
 ; TWB: Appears unused
 ; (defmethod representations-setter ((widget nglwidget) reps)
-;   (dolist (ngl-component-ids widget)
+;   (dolist (%ngl-component-ids widget)
 ;     (set-representations widget reps))
 ;   (values))
 

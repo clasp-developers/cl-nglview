@@ -18,7 +18,10 @@
   (:shadow #:count #:structure)
   (:export
     #:add-axes
+    #:add-component
     #:add-representation
+    #:add-structure
+    #:add-trajectory
     #:append-coordinates
     #:clear-representations
     #:coordinates-dict
@@ -28,6 +31,7 @@
     #:get-coordinates
     #:get-structure-name
     #:get-structure-string
+    #:hide-components
     #:id
     #:make-nglwidget
     #:n-frames
@@ -36,10 +40,12 @@
     #:path
     #:pdbid
     #:remote-call-thread-queue
+    #:remove-components
     #:send-binary
     #:set-coordinates
     #:shape
     #:show-aggregate
+    #:show-components
     #:shown
     #:show-pdbid
     #:show-structure-file

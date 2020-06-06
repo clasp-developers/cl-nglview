@@ -1,8 +1,16 @@
 (in-package :nglv)
 
+(defclass unique-object ()
+  ((id
+     :accessor id
+     :initform (jupyter:make-uuid))))
+
+(defmethod id ((value string))
+  value)
+
 
 ; p:Structure
-(defclass structure ()
+(defclass structure (unique-object)
   ((ext
      :accessor ext
      :initarg :ext
@@ -10,10 +18,7 @@
    (params
      :accessor params
      :initform nil
-     :type list)
-   (id
-     :accessor id
-     :initform (jupyter:make-uuid))))
+     :type list)))
 
 ; p:get_structure_string
 (defgeneric get-structure-string (instance)
@@ -21,11 +26,8 @@
 
 
 ; p:Trajectory
-(defclass trajectory ()
-  ((id
-     :accessor id
-     :initform (jupyter:make-uuid))
-   (shown
+(defclass trajectory (unique-object)
+  ((shown
      :accessor shown
      :initform t
      :type bool)))

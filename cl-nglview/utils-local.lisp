@@ -173,4 +173,8 @@ def get_colors_from_b64(b64_image):
     return image.getcolors(int(1E6))
 |#
 
+(defun remove-elt (vector i)
+  (replace vector vector :start1 i :start2 (1+ n))
+  (adjust-array vector (1- (length vectory))))
+
 
