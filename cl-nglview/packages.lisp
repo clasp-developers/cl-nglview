@@ -13,8 +13,11 @@
            "TEST-QUEUE")
   (:documentation "Implements a thread-safe message queue."))
 
-(defpackage #:nglv
+(defpackage #:nglview
   (:use #:cl)
+  (:nicknames nglv)
+  (:local-nicknames (:j :jupyter)
+                    (:jw :jupyter-widgets))
   (:shadow #:count #:structure)
   (:export
     #:add-axes
@@ -39,7 +42,9 @@
     #:params
     #:path
     #:pdbid
+    #:pdb-id-structure
     #:remote-call-thread-queue
+    #:remove-all-components
     #:remove-components
     #:send-binary
     #:set-coordinates

@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 ;;;Register backend is something python does but we don't need
 
@@ -64,13 +64,16 @@
    (url
      :accessor url
      :initarg :url
-     :initform "https://files.rcsb.org/view/~A.~A"))
+     :initform "http://files.rcsb.org/view/~A.~A"))
   (:default-initargs
-    :ext "cif"))
+    :ext "pdb"))
 
 ; p:get-structure-string
 (defmethod get-structure-string ((instance pdb-id-structure))
-  (drakma:http-request (format nil (url instance) (pdbid instance) (ext instance))))
+  (let ((drakma:*body-format-function* (lambda (headers external-format-in)
+                                         (declare (ignore headers external-format-in))
+                                         :utf-8)))
+    (drakma:http-request (format nil (url instance) (pdbid instance) (ext instance)))))
 
 
 (defclass ASEstructure (structure)

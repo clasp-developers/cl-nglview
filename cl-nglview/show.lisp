@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defun show-pdbid (pdbid &rest kwargs &key &allow-other-keys)
   (let ((structure (make-instance 'pdb-id-structure :pdbid pdbid)))

@@ -1,16 +1,19 @@
-(in-package :nglv)
+(in-package :nglview)
 
-(defclass unique-object ()
+(defclass component ()
   ((id
      :accessor id
-     :initform (jupyter:make-uuid))))
+     :initform (jupyter:make-uuid))
+   (name
+     :accessor name
+     :initform "")))
 
 (defmethod id ((value string))
   value)
 
 
 ; p:Structure
-(defclass structure (unique-object)
+(defclass structure (component)
   ((ext
      :accessor ext
      :initarg :ext
@@ -26,7 +29,7 @@
 
 
 ; p:Trajectory
-(defclass trajectory (unique-object)
+(defclass trajectory (component)
   ((shown
      :accessor shown
      :initform t

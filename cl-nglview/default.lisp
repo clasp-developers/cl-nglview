@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 ; p:DEFAULT_TEXT_WIDTH
 (defparameter +default-text-width+ "10em")

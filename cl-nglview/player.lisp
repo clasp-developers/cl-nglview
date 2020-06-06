@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defparameter +camera-types+ '("perspective" "orthographic"))
 
@@ -255,7 +255,7 @@
 
 ; p:_interpolation_t_changed
 (defmethod jupyter-widgets:on-trait-change ((object trajectory-player) type (name (eql :%interpolation-t)) old new source)
-  (let ((entry (jupyter:json-getf (iparams object) "t")))
+  (let ((entry (j:json-getf (iparams object) "t")))
     (if entry
         (setf (cdr entry) new)
         (setf (iparams object) (cons "t" new)))))

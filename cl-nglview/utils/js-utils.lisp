@@ -1,3 +1,3 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defparameter +open-url-template+ "window.open({~A});")

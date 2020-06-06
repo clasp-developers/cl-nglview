@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defun install-nglview-js-widgets (&rest kwargs &key (user t) (symlink nil) (overwrite t) (debug nil) &allow-other-keys)
   (let ((nvlivew-js-dirs (apply #'install-nbextension-python nbextensions "nglview" :user user :symlink symlink :overwrite overwrite kwargs)));Not totally sure about that... I'm using nbextensions as the object like hopefully they'll have a self component when we write it? ah. 

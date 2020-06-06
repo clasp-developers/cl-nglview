@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defun get-widget-by-name (box widget-name)
   "Search for the widget with the widget-name"

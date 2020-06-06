@@ -1,5 +1,5 @@
-(in-package :nglv)
-;;;https://github.com/drmeister/spy-ipykernel/blob/master/nglview/layout.py#L8
+(in-package :nglview)
+
 
 (defun make-form-item-layout ();Alright I think I know what I'm doing here
   (make-instance 'jupyter-widgets:layout :display "flex" :flex-flow "row"

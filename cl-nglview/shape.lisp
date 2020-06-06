@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (jupyter:inform :info nil "in shape.lisp")
 

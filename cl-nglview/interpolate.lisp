@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defun lerp (a b t)
   (+ (* (- b a) t) a))

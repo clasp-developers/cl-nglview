@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defclass BoxNGL (jupyter-widgets:box)
   ((%gui-style :initarg :%gui-style :accessor %gui-style

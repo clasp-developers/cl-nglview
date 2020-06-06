@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (defparameter +assembly-list+ '("default" "AU" "BU1" "UNITCELL" "SUPERCELL"))
 
@@ -83,7 +83,7 @@
     (declare (ignore repr-dict))
     (setf (name instance) name)))
   ;     (setf (jupyter-widgets:widget-value opacity-slider)
-  ;           (jsown:val repr-dict "opacity")))))
+  ;           ((j:json-getf repr-dict "opacity")))))
 
 (defun make-representation-toggle-button (instance name description value)
   (let ((widget (make-instance 'jupyter-widgets:toggle-button
@@ -193,7 +193,7 @@
                              (%get-name-and-repr-dict instance)
           (declare (ignore n))
           (setf (jupyter-widgets:widget-value widget)
-                (jsown:val repr-dict name)))))
+                (j:json-getf repr-dict name)))))
 
     widget))
 
@@ -229,10 +229,10 @@
 ; p:_get_name_and_repr_dict
 (defun %get-name-and-repr-dict (instance)
   (handler-case
-      (let ((dict (jsown:val (jsown:val (%ngl-repr-dict (%view instance))
+      (let ((dict (j:json-getf (j:json-getf (%ngl-repr-dict (%view instance))
                                         (format nil "c~A" (component-index instance)))
                              (write-string (repr-index instance)))))
-        (values (jsown:val dict "name")
-                (jsown:val dict "parameters")))
+        (values (j:json-getf dict "name")
+                (j:json-getf dict "parameters")))
     (error () (values '(:obj) '(:obj)))))
 

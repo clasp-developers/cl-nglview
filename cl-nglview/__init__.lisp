@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (install-nglview_js_widgets)
 (enable-nglview_js_widgets)

@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 (jupyter:inform :info nil "Loading widget.lisp")
 
@@ -132,14 +132,9 @@
      :initarg :ngl-repr-dict
      :initform nil
      :trait :json)
-   (%ngl-component-ids
-     :accessor %ngl-component-ids
-     :initarg :%ngl-component-ids
-     :initform (make-array 10 :fill-pointer 0 :adjustable t :element-type 'string))
-   (%ngl-component-names
-     :accessor %ngl-component-names
-     :initarg :%ngl-component-names
-     :initform (make-array 10 :fill-pointer 0 :adjustable t :element-type 'string))
+   (components ; This replaces p:_ngl_component_ids, p:_ngl_component_names and p:_trajlist
+     :accessor components
+     :initform nil)
    (%already-constructed
      :initarg :already-constructed
      :accessor already-constructed
@@ -260,9 +255,6 @@
         self.player = trajectory-player(self)
         self._already_constructed = True
    ||#
-   (%trajlist
-     :initform nil
-     :accessor %trajlist)
    (%player
      :accessor player
      :initform nil)
@@ -350,17 +342,10 @@
       (jupyter:inform :info widget "Completed widget construction")
       widget)))
 
-
-(defun component-index-and-id (instance component)
-  (with-slots (%ngl-component-ids)
-              instance
-    (jupyter:inform :info instance "component-index-and-id ~A ~A" component %ngl-component-ids)
-    (if (typep component 'integer)
-      (values component
-              (elt %ngl-component-ids component))
-      (values (position (id component) %ngl-component-ids :test #'equal)
-              (id component)))))
-
+(defun %trajlist (instance)
+  (remove-if-not (lambda (component)
+                   (typep component 'trajectory))
+                 (components instance)))
 
 (defmethod %set-serialization ((self nglwidget) &optional frame-range)
   (setf (ngl-serialize self) t)
@@ -494,7 +479,7 @@
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :picked)) old new source)
   (declare (ignore type name old source))
   (when (and new
-             (jsown:keyp new "atom")
+             (j:json-keyp new "atom")
              (slot-boundp self '%pick-history))
     (push new (pick-history self))
     (setf (pick-history self)
@@ -508,16 +493,17 @@
   (declare (ignore type name old source))
   (setf (parameters object) (list :background-color new)))
 
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%n-dragged-file)) old new source)
-  (declare (ignore type name source))
-  (when (= (- new old) 1)
-    (vector-push-extend (jupyter:make-uuid)
-                        (%ngl-component-ids self))))
+; Think this is unused
+; (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%n-dragged-file)) old new source)
+;   (declare (ignore type name source))
+;   (when (= (- new old) 1)
+;     (vector-push-extend (jupyter:make-uuid)
+;                         (%ngl-component-ids self))))
 
 ; p:_handle_n_components_changed
 (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new source)
   (declare (ignore type name old source))
-  (jupyter:inform :info self "n-components ~A ~A" new (%ngl-component-names self))
+  (jupyter:inform :info self "n-components ~A" new)
   (when (player self)
     (when (widget-repr (player self))
       (let ((component-slider (widget-component-slider (player self))))
@@ -525,7 +511,8 @@
           (setf (jupyter-widgets:widget-max component-slider) (1- new))))
       (let ((component-dropdown (widget-component-dropdown (player self))))
         ;; component_dropdown.options = tuple(self._ngl_component_names)
-        (setf (jupyter-widgets:widget-%options-labels component-dropdown) (copy-seq (%ngl-component-names self)))
+        (setf (jupyter-widgets:widget-%options-labels component-dropdown)
+              (mapcar #'name (components self)))
         (when (= new 0)
           (setf (jupyter-widgets:widget-%options-labels component-dropdown) nil
                 (jupyter-widgets:widget-value component-dropdown) " "
@@ -775,7 +762,7 @@
 
 ;;; This performs the rest of the @representations.setter
 (defmethod (setf representations) :after (value (instance nglwidget))
-  (dotimes (index (length (%ngl-component-ids instance)))
+  (dotimes (index (length (components instance)))
     (set-representation instance value :component index)))
 
 (defmethod update-representation ((widget nglwidget) &optional (component 0)
@@ -876,7 +863,7 @@
                 do (push (cons (princ-to-string index) index) coordinates-meta))
           (let ((mytime (* (/ (get-internal-run-time) internal-time-units-per-second) 1000.0)))
             (jupyter-widgets:send-custom widget
-                                         (jsown:new-js ("type" "binary_single")
+                                         (j:json-new-obj ("type" "binary_single")
                                                        ("data" coordinates-meta)
                                                        ("mytime" mytime))
                                          (coerce (nreverse buffers) 'vector)))))
@@ -1034,9 +1021,9 @@
   (values))
 
 (defmethod jupyter-widgets:on-custom-message ((widget nglwidget) content buffers)
-  (jupyter:inform :info widget "Handling custom message ~A" (jsown:val content "type"))
+  (jupyter:inform :info widget "Handling custom message ~A" (j:json-getf content "type"))
   (setf (ngl-msg widget) content)
-  (alexandria:switch ((jsown:val content "type") :test #'string=)
+  (alexandria:switch ((j:json-getf content "type") :test #'string=)
     ("request_frame"
       (incf (frame widget) (%step (player widget)))
       (if (>= (frame widget) (count widget))
@@ -1045,34 +1032,34 @@
           (setf (frame widget) (1- (count widget))))))
     ("updateIDs"
       (setf (%ngl-view-id widget)
-            (jsown:val content "data")))
+            (j:json-getf content "data")))
     ("repr_parameters"
-      (let ((data (jsown:val content "data")))
+      (let ((data (j:json-getf content "data")))
         (when (and (player widget)
                    (widget-repr-name (player widget))
                    (widget-repr-selection (player widget)))
           (setf (jupyter-widgets:widget-value (widget-repr-name (player widget)))
-                (jsown:val data "name")
+                (j:json-getf data "name")
 
                 (jupyter-widgets:widget-value (widget-repr-selection (player widget)))
-                (jsown:val data "sele")))))
+                (j:json-getf data "sele")))))
     ("request_loaded"
       (unless (loaded widget)
         (setf (loaded widget) nil))
-      (setf (loaded widget) (jsown:val content "data")))
+      (setf (loaded widget) (j:json-getf content "data")))
     ("request_repr_dict"
-       (setf (ngl-repr-dict widget) (jsown:val content "data")))
+       (setf (ngl-repr-dict widget) (j:json-getf content "data")))
     ("stage_parameters"
-      (let ((stage-parameters (jupyter:json-to-plist (jsown:val content "data") :symbol-case :camel)))
+      (let ((stage-parameters (jupyter:json-to-plist (j:json-getf content "data") :symbol-case :camel)))
         (setf (%ngl-full-stage-parameters widget) stage-parameters)
         (unless (%ngl-original-stage-parameters widget)
           (setf (%ngl-original-stage-parameters widget) stage-parameters))))
     ("async_message"
-      (when (string= (jsown:val content "data") "ok")
+      (when (string= (j:json-getf content "data") "ok")
         (jupyter:inform :info widget "Setting event")
         (pythread:event-set (event widget))))
     (otherwise
-      (jupyter:inform :warn "No handler for ~A" (jsown:val content "type")))))
+      (jupyter:inform :warn "No handler for ~A" (j:json-getf content "type")))))
     
 #|    def _load_data(self, obj, **kwargs):
   '''
@@ -1145,9 +1132,10 @@ kwargs=kwargs2)
   (if (not (typep structure 'structure))
       (error "~s is not an instance of structure" structure))
   (apply '%load-data self structure kwargs)
-  (vector-push-extend (id structure) (%ngl-component-ids self))
+  (setf (components self)
+        (append (components self) (list structure)))
   (when (> (n-components self) 1)
-    (center self :component (- (length (%ngl-component-ids self)) 1)))
+    (center self :component (- (length (components self)) 1)))
   (id structure))
 
 ; p:add-trajectory
@@ -1155,9 +1143,9 @@ kwargs=kwargs2)
   (jupyter:inform :info nil "entered add-trajectory")
   (apply '%load-data widget trajectory kwargs)
   (setf (shown trajectory) t)
-  (setf (%trajlist widget) (append (%trajlist widget) (list trajectory)))
   (%update-count widget)
-  (vector-push-extend (id trajectory) (%ngl-component-ids self))
+  (setf (components self)
+        (append (components self) (list trajectory)))
   (id trajectory))
 
 ; p:add_pdbid
@@ -1166,8 +1154,7 @@ kwargs=kwargs2)
 
 ; p:add_component
 (defun add-component (instance filename &rest kwargs)
-  (apply '%load-data instance filename kwargs)
-  (vector-push-extend (jupyter:make-uuid) (%ngl-component-ids self)))
+  (apply '%load-data instance filename kwargs))
 
 ; p:_load_data
 (defun %load-data (widget obj &key kwargs)
@@ -1191,39 +1178,60 @@ kwargs=kwargs2)
           (if (and (eq binary t) (not use-filename))
               (error "Handle blob decoding of base64 files"))
           (setf blob-type (if passing-buffer "blob" "path"))
-          (setf args (list (jsown:new-js
+          (setf args (list (j:json-new-obj
                        ("type" blob-type)
                                  ("data" blob)
                                  ("binary" (or binary :false))))))
         (setf blob-type "url"
               url obj
-              args (list (jsown:new-js
+              args (list (j:json-new-obj
               ("type" blob-type)
                                ("data" url)
                                ("binary" :false)))))
     (let ((name (get-name obj :dictargs kwargs2)))
-      (vector-push-extend name (%ngl-component-names widget))
+      ;(vector-push-extend name (%ngl-component-names widget))
       (%remote-call widget "loadFile"
                     :target "Stage"
                     :args args
                     :kwargs kwargs2)))
   (jupyter:inform :info nil "leaving %load-data"))
 
+(defun component-member-p (component index seq)
+  (some (lambda (item)
+          (or (and (typep item 'integer)
+                   (= index item))
+              (and (typep item 'string)
+                   (string= (id component) item))
+              (eq component item)))
+        seq))
+
 ; p:remove_component
-(defun remove-components (instance &rest components)
-  (with-slots (%trajlist %ngl-component-ids %ngl-component-names)
-              instance
-    (dolist (component components)
-      (multiple-value-bind (index id)
-                           (component-index-and-id instance component)
-        (jupyter:inform :info instance "Remove ~A ~A" index id)
-        (setf %trajlist (remove id %trajlist :test #'equal :key #'id))
-        (remove-elt %ngl-component-ids index)
-        (remove-elt %ngl-component-names index)
-        (%remote-call widget
-                      "removeComponent"
-                      :target "Stage"
-                      :args (list index))))))
+(defun remove-components (instance &rest args)
+  (setf (components instance)
+        (do* ((components-tail (components instance) (cdr components-tail))
+              (component (car components-tail) (car components-tail))
+              (index 0)
+              remaining-components)
+             ((null components-tail) (reverse remaining-components))
+          (cond
+            ((component-member-p component index args)
+              (%remote-call instance
+                            "removeComponent"
+                            :target "Stage"
+                            :args (list index)))
+            (t
+              (push component remaining-components)
+              (setf index (1+ index))))))
+  (values))
+
+(defun remove-all-components (instance)
+  (dotimes (index (length (components instance)))
+    (declare (ignore index))
+    (%remote-call instance
+                  "removeComponent"
+                  :target "Stage"
+                  :args (list 0)))
+  (setf (components instance) nil))
 
 ; p:_remote_call
 (defun %remote-call (widget method-name &key (target "Widget") args kwargs)
@@ -1254,7 +1262,7 @@ kwargs=kwargs2)
   (check-type args list)
   (check-type kwargs list)              ; alist
   (jupyter:inform :info widget "entered %remote-call ~a" method-name)
-  (let ((msg (jsown:new-js
+  (let ((msg (j:json-new-obj
                ("target" target)
                ("type" "call_method")
                ("methodName" method-name)
@@ -1262,12 +1270,12 @@ kwargs=kwargs2)
         (component-index (assoc "component_index" kwargs :test #'string=))
         (repr-index (assoc "repr_index" kwargs :test #'string=)))
     (when component-index
-      (setf (jsown:val msg "component_index") (cdr component-index))
+      (setf (j:json-getf msg "component_index") (cdr component-index))
       (setf kwargs (remove component-index kwargs)))
     (when repr-index
-      (setf (jsown:val msg "repr_index") (cdr repr-index))
+      (setf (j:json-getf msg "repr_index") (cdr repr-index))
       (setf kwargs (remove repr-index kwargs)))
-    (setf (jsown:val msg "kwargs") (cons :obj kwargs))
+    (setf (j:json-getf msg "kwargs") (cons :obj kwargs))
     (let ((callback-maker (lambda (description)
                             (jupyter:inform :info nil "About to make-remote-call-callback ~a" description)
                             (pythread:make-remote-call-callback
@@ -1298,21 +1306,20 @@ kwargs=kwargs2)
   (jupyter:inform :info nil "leaving %remote-call ~a" method-name)
   t)
 
-(defun set-visibility (instance visibility &rest components)
+(defun set-visibility (instance visibility &rest args)
   "set visibility for given components (by their indicies or ids)"
-  (with-slots (%trajlist)
-              instance
-    (dolist (component components)
-      (multiple-value-bind (index id)
-                           (component-index-and-id instance component)
-        (dolist (traj %trajlist)
-          (when (equal (id traj) id)
-            (setf (shown traj) visibility)))
-        (%remote-call instance
-                      "setVisibility"
-                      :target "compList"
-                      :args (list visibility)
-                      :kwargs (list (cons "component_index" index)))))))
+  (do* ((components-tail (components instance) (cdr components-tail))
+        (component (car components-tail) (car components-tail))
+        (index 0 (1+ index)))
+       ((null components-tail))
+    (when (component-member-p component index args)
+      (when (typep component 'trajectory)
+        (setf (shown component) visibility))
+      (%remote-call instance
+                    "setVisibility"
+                    :target "compList"
+                    :args (list visibility)
+                    :kwargs (list (cons "component_index" index))))))
 
 ; p:hide
 (defun hide-components (instance &rest components)
@@ -1321,7 +1328,7 @@ kwargs=kwargs2)
 
 ; p:show
 (defun show-components (instance &rest components)
-  "Show for given components (by their indicies or ids)"
+  "Show given components (by their indicies or ids)"
   (apply #'set-visibility instance t components))
 
 

@@ -1,4 +1,4 @@
-(in-package :nglv)
+(in-package :nglview)
 
 
 (defun dict (&rest args)

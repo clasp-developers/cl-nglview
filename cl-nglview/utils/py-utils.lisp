@@ -1,11 +1,11 @@
-(in-package :nglv)
+(in-package :nglview)
 
 ; p:get_repr_names_from_dict
 (defun get-repr-names-from-dict (repr-dict component)
   (handler-case
       (mapcar (lambda (pair)
-                (jsown:val (cdr pair) "type"))
-              (jsown:val repr-dict (write-string component)))
+                (j:json-getf (cdr pair) "type"))
+              (j:json-getf repr-dict (write-string component)))
     (error () nil)))
 
 ; p:FileManager
