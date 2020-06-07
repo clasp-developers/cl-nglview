@@ -1,5 +1,8 @@
 (in-package :nglview)
 
+(defparameter +frontend-version+ "2.7.5")
+(defparameter +frontend-module+ "nglview-js-widgets")
+
 ; p:DEFAULT_TEXT_WIDTH
 (defparameter +default-text-width+ "10em")
 

@@ -11,12 +11,31 @@
    (%ready ; p:_ready
      :accessor %ready
      :initform nil
-     :trait :bool)))
+     :trait :bool))
+  (:metaclass jw:trait-metaclass))
 
-(defmethod on-trait-change (instance (name (eql :%ready)) type old-value new-value source)
+; p:_js
+(defun %js (instance code)
+  (_call instance "executeCode" :args code))
+
+; p:_call
+(defun %call (instance method-name &key args kwargs)
+  (with-slots (%msg-q %msg-ar %ready)
+              instance
+    (let ((msg (j:json-new-obj
+                 ("type" "callMethod")
+                 ("methodName" method-name)
+                 ("args" args)
+                 ("kwargs" (cons :obj kwargs)))))
+      (if %ready
+        (jw:send-custom instance msg)
+        (clext.queue:enqueue %msg-q msg))
+      (setf %msg-ar (append %msg-ar (list msg))))))
+
+(defmethod jw:on-trait-change (instance (name (eql :%ready)) type old-value new-value source)
   (declare (ignore name type old-value source))
   (when new-value
     (with-slots (%msg-q) instance
       (do ()
-          ((clext:queue-emptyp %msg-q))
-        (send instance (clext.dequeue %msg-q))))))
+          ((clext.queue:queue-emptyp %msg-q))
+        (jw:send-custom instance (clext.queue:dequeue %msg-q))))))

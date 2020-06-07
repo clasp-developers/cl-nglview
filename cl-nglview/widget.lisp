@@ -2,8 +2,6 @@
 
 (jupyter:inform :info nil "Loading widget.lisp")
 
-(defparameter +frontend-version+ "2.7.5") ;; must match to js/package.json and js/src/widget_ngl.js
-
 (defparameter *excluded-callback-after-firing*
   (list "setUnSyncCamera" "setSelector" "setUnSyncFrame"
         "setDelay" "autoView" "_downloadImage" "_exportImage"
@@ -132,11 +130,11 @@
      :trait :unicode)
    (%gui-theme ; p:_gui_theme
      :accessor %gui-theme
-     :initform nil
      :trait :unicode)
    (%widget-theme ; p:_widget_theme
      :accessor %widget-theme
-     :initform nil)
+     :initform nil
+     :allocation :class)
    (%ngl-serialize ; p:_ngl_serialize
      :accessor %ngl-serialize
      :initform nil
@@ -244,10 +242,10 @@
      :initform nil))
   (:default-initargs
     :%view-name "NGLView"
-    :%view-module "nglview-js-widgets"
+    :%view-module +frontend-module+
     :%view-module-version +frontend-version+
     :%model-name "NGLModel"
-    :%model-module "nglview-js-widgets"
+    :%model-module +frontend-module+
     :%model-module-version +frontend-version+)
   (:metaclass jupyter-widgets:trait-metaclass))
 
@@ -294,7 +292,14 @@
 
   (%sync-with-layout instance)
   (%create-player instance)
-  (%create-ibtn-fullscreen instance))
+  (%create-ibtn-fullscreen instance)
+
+  (unless (%widget-theme instance)
+    (setf (%widget-theme instance) (make-instance 'theme-manager))
+    (jw:display (%widget-theme instance)))
+
+  (setf (%gui-theme instance) (%theme (%widget-theme instance)))
+  (jw:link instance :%gui-theme (%widget-theme instance) :%theme))
 
 
 (defun make-nglwidget (&rest initargs &key &allow-other-keys)

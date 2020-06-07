@@ -14,15 +14,22 @@
   :components ((:file "packages")
                (:file "color")
                (:module "utils"
-                 :serial t
-                 :components ((:file "js-utils")
-                              (:file "py-utils")))
+                :serial t
+                :components ((:file "js-utils")
+                             (:file "py-utils")))
                (:file "default")
                (:file "parameters")
                (:file "queue")
                (:file "utils-local")
                (:file "layout")
                (:file "base")
+               (:module "theme"
+                :serial t
+                :components ((:file "theme")
+                             (:static-file "main.css")
+                             (:static-file "dark.css")
+                             (:static-file "light.css")
+                             (:static-file "oceans16.css")))
                (:file "shape")
                (:file "pythread")
                (:file "stage")

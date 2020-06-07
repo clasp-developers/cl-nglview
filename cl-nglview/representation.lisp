@@ -59,7 +59,7 @@
 ;   (values))
 
 ; p:_on_name_changed
-(defmethod on-trait-change ((instance representation-control) (name (eql :name)) type old-value new-value source)
+(defmethod jw:on-trait-change ((instance representation-control) (name (eql :name)) type old-value new-value source)
   (declare (ignore name type old-value source))
   (setf (jupyter-widgets:display (surface-layout instance))
         (if (equal "surface" new-value)
@@ -67,12 +67,12 @@
           "none")))
 
 ; p:_on_repr_index_changed
-(defmethod on-trait-change ((instance representation-control) (name (eql :repr-index)) type old-value new-value source)
+(defmethod jw:on-trait-change ((instance representation-control) (name (eql :repr-index)) type old-value new-value source)
   (declare (ignore name type old-value new-value source))
   (%update instance))
 
 ; p:_on_component_index_changed
-(defmethod on-trait-change ((instance representation-control) (name (eql :component-index)) type old-value new-value source)
+(defmethod jw:on-trait-change ((instance representation-control) (name (eql :component-index)) type old-value new-value source)
   (declare (ignore name type old-value new-value source))
   (%update instance))
 
