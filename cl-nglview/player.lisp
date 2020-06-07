@@ -635,7 +635,7 @@
                                     :description "start"
                                     :style style))
          (stop-text (make-instance 'jupyter-widgets:int-text
-                                   :value (count (%view self))
+                                   :value (1+ (max-frame (%view self)))
                                    :description "stop"
                                    :style style))
          (step-text (make-instance 'jupyter-widgets:int-text
@@ -751,7 +751,7 @@
                     :children (mapcan (lambda (pair)
                                         (unless (member (cdr pair) '("distance" "ball+stick") :test #'string=)
                                           (let ((inst (make-instance 'jupyter-widgets:toggle-button
-                                                                     :value (has-repr-p (ngl-repr-dict (%view player-instance)) (cdr pair))
+                                                                     :value (has-repr-p (%ngl-repr-dict (%view player-instance)) (cdr pair))
                                                                      :description (car pair))))
                                             (jupyter-widgets:on-button-click button-clear
                                               (lambda (button)

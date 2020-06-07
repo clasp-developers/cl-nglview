@@ -13,105 +13,83 @@
 (defparameter *pick-history-depth* 16)
 
 (defclass nglwidget (jupyter-widgets:dom-widget)
-  ((%ngl-version
+  ((%ngl-version ; p:_ngl_version
      :accessor ngl-version
-     :initarg :ngl-version
      :initform ""
      :trait :unicode)
-   (%image-data
-     :initarg :image-data
+   (%image-data ; p:_image_data
+     :accessor %image-data
      :initform ""
      :trait :unicode)
-   (frame
+   (frame ; p:frame
      :accessor frame
-     :initarg :frame
      :initform 0
      :type Integer
      :trait :int)
-   (count
-     :accessor count
-     :initarg :count
-     :initform 1
+   (max-frame ; p:max_frame
+     :accessor max-frame
+     :initform 0
      :type Integer
      :trait :int)
-   (background
+   (background ; p:background
      :accessor background
-     :initarg :background
-     :initform "white" ; I think this is deprecated
+     :initform "white"
      :trait :color)
-   (loaded
-     :initarg :loaded
+   (loaded ; p:loaded
      :accessor loaded
-     :type boolean
-     :initform nil)
-   (picked
-     :initarg :picked
+     :initform nil
+     :type boolean)
+   (picked ; p:picked
      :accessor picked
-     :trait :json
-     :initform nil)
+     :initform nil
+     :trait :json)
    (%pick-history
-     :initarg :pick-history
      :accessor pick-history
-     :type list
-     :initform nil)
-   (n-components
-     :initarg :n-components
+     :initform nil
+     :type list)
+   (n-components ; p:n_componend
      :accessor n-components
-     :type integer
      :initform 0
+     :type integer
      :trait :int)
-   (%scene-position
-     :initarg :scene-position
+   (%view-width ; p:_view_width
+     :accessor %view-width
+     :initarg :width
+     :initform ""
+     :trait :unicode)
+   (%view-height ; p:_view_height
+     :accessor %view-height
+     :initarg :height
+     :initform ""
+     :trait :unicode)
+   (%scene-position ; p:_scene_position
      :accessor scene-position
      :trait :dict
      :initform nil)
-   (%scene-rotation
-     :initarg :scene-rotation
+   (%scene-rotation ; p:_scene_rotation
      :accessor scene-rotation
-     :trait :dict
-     :initform nil)
-   (%first-time-loaded
-     :initarg :first-time-loaded
-     :accessor first-time-loaded
-     :type boolean
-     :initform T)
-   ;; hack to always display movie
-   (%n-dragged-files
-     :initarg :n-dragged-files
-     :accessor n-dragged-files
-     :type integer
-     :initform 0
-     :trait :int)
-   ;; TODO: remove parameters?
-   (parameters
-     :initarg :parameters
+     :initform nil
+     :trait :dict)
+   (parameters ; p:_parameters
      :accessor parameters
-     :initform nil) ; not synchronized https://github.com/drmeister/spy-ipykernel/blob/master/nglview/widget.py#L124
-   (%ngl-full-stage-parameters
+     :initform nil)
+   (%ngl-full-stage-parameters ; p:_ngl_full_stage_parameters
      :accessor %ngl-full-stage-parameters
-     :trait :plist-camel-case
-     :initform nil)
-   (%ngl-full-stage-parameters-embed
-     :accessor %ngl-full-stage-parameters-embed
-     :trait :plist-camel-case
-     :initform nil)
-   (%ngl-original-stage-parameters
+     :initform nil
+     :trait :plist-camel-case)
+   (%ngl-original-stage-parameters ; p:_ngl_original_stage_parameters
      :accessor %ngl-original-stage-parameters
-     :trait :plist-camel-case
-     :initform nil)
-   ;; Not sync'd
-   (%coordinates-dict
+     :initform nil
+     :trait :plist-camel-case)
+   (%coordinates-dict ; p:_coordinates_dict
      :accessor coordinates-dict
-     :initarg :coordinates-dict
      :initform nil)
-   (%camera-str
+   (%camera-str ; p:_camera_str
      :accessor camera-str
-     :initarg :camera-str
      :initform "orthographic" ; probably need validate for following values "perspective" "orthographic"
      :trait :unicode)
-   (%camera-orientation
+   (%camera-orientation ; p:_camera_orientation
      :accessor camera-orientation
-     :initarg :camera-orientation
      :initform nil
      :type list
      :trait :list)
@@ -127,98 +105,103 @@
      :accessor %ngl-view-id
      :initform nil
      :trait :list)
-   (%ngl-repr-dict
-     :accessor ngl-repr-dict
-     :initarg :ngl-repr-dict
+   (%ngl-repr-dict ; p:_ngl_repr_dict
+     :accessor %ngl-repr-dict
      :initform nil
      :trait :json)
    (components ; This replaces p:_ngl_component_ids, p:_ngl_component_names and p:_trajlist
      :accessor components
      :initform nil)
-   (%already-constructed
-     :initarg :already-constructed
-     :accessor already-constructed
-     :type boolean
-     :initform nil)
-   (%ngl-msg
-     :initarg :ngl-msg
+   (%ngl-msg ; p:_ngl_msg
      :accessor ngl-msg
-     :type (or string null)
-     :initform nil)
-   (%send-binary
-     :initarg :send-binary
+     :initform nil
+     :type (or string null))
+   (%send-binary ; p:_send_binary
      :accessor send-binary
-     :type boolean
-     :initform t)
-   (%init-gui
-     :initarg :init-gui
+     :initform t
+     :type boolean)
+   (%init-gui ; p:_init_gui
      :accessor init-gui
-     :type boolean
-     :initform nil)
-   (%hold-image
-     :initarg :hold-image
-     :accessor hold-image
-     :type boolean
-     :initform nil)
-   (%ngl-serialize
-     :initarg :ngl-serialize
-     :accessor ngl-serialize
-     :type boolean
+     :initarg :gui
      :initform nil
+     :type boolean)
+   (gui-style ; p:gui_style
+     :accessor gui-style
+     :initform nil
+     :initarg :gui-style
+     :trait :unicode)
+   (%gui-theme ; p:_gui_theme
+     :accessor %gui-theme
+     :initform nil
+     :trait :unicode)
+   (%widget-theme ; p:_widget_theme
+     :accessor %widget-theme
+     :initform nil)
+   (%ngl-serialize ; p:_ngl_serialize
+     :accessor %ngl-serialize
+     :initform nil
+     :type boolean
      :trait :bool)
-   (%ngl-msg-archive
-     :initarg :ngl-msg-archive
-     :accessor ngl-msg-archive
-     :type list
+   (%ngl-msg-archive ; p:_ngl_msg_archive
+     :accessor %ngl-msg-archive
      :initform nil
+     :type list
      :trait :list)
-   (%ngl-coordinate-resource
-     :initarg :ngl-coordinate-resource
-     :accessor ngl-coordinate-resource
+   (%ngl-coordinate-resource ; p:_ngl_coordinate_resource
+     :accessor %ngl-coordinate-resource
      :trait :dict
      :initform nil)
-   (%representations
+   (representations ; p:_representations
+     :accessor representations
      :initarg :representations
-     :accessor representations)
-   ;; internal variables
-   (%gui
-     :initarg :%gui
+     :initform nil)
+   (%ngl-color-dict ; p:_ngl_color_dict
+     :accessor %ngl-color-dict
+     :trait :dict
+     :initform nil)
+   (%ngl-player-dict ; p:_ngl_player_dict
+     :accessor %ngl-player-dict
+     :initform nil
+     :trait :dict)
+   (%iplayer ; p:_iplayer
+     :accessor %iplayer
+     :initform nil
+     :trait :widget)
+   (%igui ; p:_igui
+     :accessor %igui
+     :initform nil
+     :trait :widget)
+   (%ibtn-fullscreen ; p:_ibtn_fullscreen
+     :accessor %ibtn-fullscreen
+     :initform nil
+     :trait :widget)
+   (%gui ; p:_gui
      :accessor %gui
      :initform nil)
-   ;;   (%init-gui :initarg :gui :accessor gui :initform nil) ;; WHY? does nglview does this
-   (%theme
+   (%theme ; p:_theme
+     :accessor %theme
      :initarg :theme
-     :accessor theme
      :initform "default")
-   (%widget-image
-     :initarg :widget-image
+   (%widget-image ; p:_widget_image
      :accessor widget-image
      :initform (make-instance 'jupyter-widgets:image :width 900))
-   (%image-array
-     :initarg :image-array
+   (%image-array ; p:_image_array
      :accessor image-array
      :initform #())
-   (%event
-     :initarg :event
+   (%event ; p:_event
      :accessor event
      :initform (make-instance 'pythread:event))
    (%ngl-displayed-callbacks-before-loaded-reversed
-     :initarg :ngl-displayed-callbacks-before-loaded-reversed
      :accessor ngl-displayed-callbacks-before-loaded-reversed
      :initform nil)
    (%ngl-displayed-callbacks-after-loaded-reversed
-     :initarg :ngl-displayed-callbacks-after-loaded-reversed
      :accessor ngl-displayed-callbacks-after-loaded-reversed
      :initform nil)
-   (%shape
-     :initarg :shape
-     :accessor shape
-     :initform (make-instance 'shape))
-   (%stage
-     :initarg :stage
+   (shape ; p:shape
+     :accessor shape)
+   (stage ; p:stage
      :accessor stage)
-   (%control
-     :initarg :control
+   (control ; p:control
      :accessor control)
    ;;; FIXME:  Would this be a Clasp mp:PROCESS??
    ;;;   (%handle-msg-thread :initarg :handle-msg-thread :accessor handle-msg-thread :initform :threading.thread)
@@ -231,17 +214,15 @@
    |#
    ;; Only one remote-call-thread in pythread:*remote-call-thread*
    #+(or)(%remote-call-thread
-           :initarg :remote-call-thread
            :accessor remote-call-thread
            :allocation :class
            :initform pythread:*remote-call-thread*)
    ;; Only one remote-call-thread-queue in pythread:*remote-call-thread-queue*
    #+(or)(%remote-call-thread-queue
-           :initarg :remote-call-thread-queue
            :accessor remote-call-thread-queue
            :allocation :class
            :initform pythread:*remote-call-thread-queue*)
-   (%handle-msg-thread
+   (%handle-msg-thread ; p:_handle_msg_thread
      :accessor handle-msg-thread
      :initform nil)
    ;; keep track but making copy
@@ -259,7 +240,6 @@
      :accessor player
      :initform nil)
    (%init-representations
-     :initarg :init-representations
      :accessor init-representations
      :initform nil))
   (:default-initargs
@@ -273,74 +253,80 @@
 
 (jupyter-widgets:register-widget nglwidget)
 
-(defmethod initialize-instance :before ((instance nglwidget) &rest initargs)
+(defmethod initialize-instance :before ((instance nglwidget) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
   (unless pythread:*remote-call-thread*
     (pythread::kernel-start-callback)))
 
-(defun make-nglwidget (&rest kwargs-orig
-                       &key (structure nil structure-p)
-                         (representations nil representations-p)
-                         (parameters nil parameters-p)
-                         (gui nil gui-p)
-                         (theme "default" theme-p)
-                         &allow-other-keys)
-  (jupyter:inform :info nil "make-nglwidget")
-  (let ((kwargs (copy-list kwargs-orig)))
-    (when structure-p (remf kwargs :structure))
-    (when representations-p (remf kwargs :representations))
-    (when parameters-p (remf kwargs :parameters))
-    (when gui-p (remf kwargs :gui))
-    (when theme-p (remf kwargs :theme))
-    (let ((widget (apply #'make-instance 'nglwidget kwargs)))
-      ; FIXME: Do we need to do this? Current method violates finalization rules by refering to widget
-      ; (gctools:finalize widget #'(lambda () (format t "Finalizing widget~%") (widget-close widget)))
-      (when gui-p (setf (init-gui widget) gui))
-      (when theme-p (setf (theme widget) theme))
-      (setf (stage widget) (make-instance 'stage :view widget))
-;;;      (setf (control widget) (make-instance 'viewer-control :view widget))
-      #+(or)(warn "What do we do about add_repr_method_shortcut")
-      ;;; Handle messages - in Python they start a daemon - WHY????
-      ; TWB - I don't think we need to do any of this. The kernel message loop should route messages
-      ; to our on-comm-message
-      ; (cl-ipykernel:on-msg widget '%ngl-handle-msg)
-      ; #+(or)(progn
-      ;         (jupyter:inform :info nil "Starting handle-msg-thread from process ~s" (bordeaux-threads:current-thread))
-      ;         (setf (handle-msg-thread widget)
-      ;               (mp:process-run-function
-      ;                'handle-msg-thread
-      ;                (lambda ()
-      ;                  (cl-ipkernel:on-msg widget '%ngl-handle-msg)
-      ;                  (jupyter:inform :info nil "Calling cl-ipykernel:on-msg widget with #'%ngl-handle-msg in process: ~s" (bordeaux-threads:current-thread))
-      ;                  (loop
-                         ;; yield while respecting callbacks to ngl-handle-msg
-      ;                    (bordeaux-threads:thread-yield)
-      ;                    (sleep 1) ;; I don't want to sleep here - do I?   Will it slow down callbacks to %ngl-handle-msg
-      ;                    (format t "handle-msg-thread in process-yield loop ~s~%" (get-internal-real-time ) ))
-      ;                  (jupyter:inform :info nil "Leaving handle-msg-thread - but this shouldn't happen - this thread should be killed!!!!!"))
-      ;                cl-jupyter:*default-special-bindings*)))
-      (when parameters-p (setf (parameters widget) parameters))
-      (cond
-        ((typep structure 'trajectory)
-         (let ((name (nglv::get-structure-name structure)))
-           (add-trajectory widget structure :name name)))
-        ((consp structure)
-         (warn "Handle list of structures"))
-        (structure
-         (add-structure widget structure)))
-      ;; call before setting representations
-      (jupyter:inform :info nil "About to set representations -> ~a" representations)
-      (when representations
-        (check-type representations array)
-        (setf (init-representations widget) representations))
-      (%set-unsync-camera widget)
-      (%remote-call widget "setSelector" :target "Widget" :args (list (jupyter:make-uuid)))
-      (jupyter:inform :info widget "Creating player")
-      (let ((new-player (make-instance 'trajectory-player :%view widget)))
-        (setf (player widget) new-player))
-      (setf (already-constructed widget) t)
-      (jupyter:inform :info widget "Completed widget construction")
-      widget)))
+(defmethod initialize-instance :after ((instance nglwidget) &rest initargs &key &allow-other-keys)
+  (setf (shape instance)
+        (make-instance 'shape :%view instance)
+
+        (stage instance)
+        (make-instance 'stage :%view instance)
+
+        (control instance)
+        (make-instance 'viewer-control :%view instance)
+
+        (player instance)
+        (make-instance 'trajectory-player :%view instance))
+
+  (let ((kwargs (copy-list initargs))
+        (structure (getf initargs :structure)))
+    (cond
+      ((getf initargs :representations)
+        (setf (getf kwargs :default-representation)
+              nil))
+      ((getf initargs :default)
+        (setf (getf kwargs :default-representation)
+              (getf initargs :default))))
+
+    (cond
+      ((typep structure 'trajectory)
+        (add-trajectory instance structure :name (apply #'get-name structure kwargs)))
+      ((typep structure 'structure)
+        (add-structure instance structure))
+      ((listp structure)
+        (dolist (trajectory structure)
+          (add-trajectory instance trajectory :name (apply #'get-name trajectory kwargs))))
+      (structure
+        (apply #'add-structure instance structure kwargs))))
+
+  (%sync-with-layout instance)
+  (%create-player instance)
+  (%create-ibtn-fullscreen instance))
+
+
+(defun make-nglwidget (&rest initargs &key &allow-other-keys)
+  (apply #'make-instance 'nglwidget initargs))
+
+; p:_create_ibtn_fullscreen
+(defun %create-ibtn-fullscreen (instance)
+  (setf (%ibtn-fullscreen instance)
+        (make-instance 'jw:button :icon "compress"
+                       :layout (make-instance 'jw:layout :width "34px"))))
+
+; p:_sync_with_layout
+(defun %sync-with-layout (instance)
+  (jw:observe (jw:widget-layout instance) :width
+    (lambda (layout-instance name type old-value new-value source)
+      (declare (ignore layout-instance name type old-value source))
+      (%set-size instance new-value "")))
+  (jw:observe (jw:widget-layout instance) :height
+    (lambda (layout-instance name type old-value new-value source)
+      (declare (ignore layout-instance name type old-value source))
+      (%set-size instance "" new-value))))
+
+; p:_create_player
+(defun %create-player (instance)
+  (let ((player (make-instance 'jw:play :max (max-frame instance) :interval 100))
+        (slider (make-instance 'jw:int-slider :max (max-frame instance))))
+    (setf (%iplayer instance)
+          (make-instance 'jw:h-box :children (list player slider)))
+    (jw:link player :value slider :value)
+    (jw:link player :value instance :frame)
+    (jw:link player :max instance :max-frame)
+    (jw:link slider :max instance :max-frame)))
 
 (defun %trajlist (instance)
   (remove-if-not (lambda (component)
@@ -348,7 +334,7 @@
                  (components instance)))
 
 (defmethod %set-serialization ((self nglwidget) &optional frame-range)
-  (setf (ngl-serialize self) t)
+  (setf (%ngl-serialize self) t)
   (setf (ngl-msg-archive self)
          (mapcar (lambda (callback)
                    (ngl-msg callback))
@@ -374,7 +360,7 @@
       )))
 
 (defmethod %unset-serialization ((self nglwidget))
-  (setf (ngl-serialize self) nil
+  (setf (%ngl-serialize self) nil
         (ngl-msg-archive self) nil
         (ngl-coordinate-resource self) nil
         (%ngl-full-stage-parameters-embed self) nil))
@@ -540,7 +526,7 @@
            (repr-name-text (widget-repr-name (player self)))
            (repr-selection (widget-repr-selection (player self)))
            (reprlist-choices (widget-repr-choices (player self)))
-           (repr-names (get-repr-names-from-dict (ngl-repr-dict self) (value component-slider))))
+           (repr-names (get-repr-names-from-dict (%ngl-repr-dict self) (value component-slider))))
       (cond
         ((and (consp new)
               (= (length new) 1)
@@ -689,42 +675,38 @@
                                             :align-items "stretch")
                      :children (list widget (jupyter-widgets:%display (player widget)))))))
 
-
-(defmethod %set-size ((self nglwidget) w h)
-  (%remote-call self
-                "setDraggable"
+; p:_set_size
+(defun %set-size (instance width height)
+  (%remote-call instance
+                "setSize"
                 :target "Widget"
-                :args (list "")))
+                :args (list width height)))
 
-(defmethod %set-draggable ((widget nglwidget) &key (yes t))
-  (if yes
-      (%remote-call widget "setDraggable"
-                    :target "Widget"
-                    :args '(""))
-      (%remote-call widget "setDraggable"
-                    :target "Widget"
-                    :args '("destroy"))))
+; p:_set_sync_camera
+(defun %set-sync-camera (instance &rest other-views)
+  (with-slots (%synced-model-ids)
+              instance
+    (when other-views
+      (setf %synced-model-ids
+            (union %synced-model-ids (mapcar #'%model-id other-views) :test #'equal)))
+    (%remote-call instance "setSyncCamera"
+                  :target "Widget"
+                  :args %synced-model-ids)))
 
-(defmethod %set-sync-frame ((widget nglwidget))
-  (%remote-call widget "setSyncFrame" :target "Widget"))
+; p:_set_unsync_camera
+(defun %set-unsync-camera (instance &rest other-views)
+  (with-slots (%synced-model-ids)
+              instance
+    (when other-views
+      (setf %synced-model-ids
+            (union %synced-model-ids (mapcar #'%model-id other-views) :test #'equal)))
+    (%remote-call instance "setUnSyncCamera"
+                  :target "Widget"
+                  :args %synced-model-ids)))
 
-(defmethod %set-unsync-frame ((widget nglwidget))
-  (%remote-call widget "setUnSyncFrame" :target "Widget"))
-
-(defmethod %set-sync-camera ((widget nglwidget))
-  (%remote-call widget "setSyncCamera" :target "Widget"))
-
-(defmethod %set-unsync-camera ((widget nglwidget))
-  (%remote-call widget "setUnSyncCamera" :target "Widget"))
-
-(defmethod %set-delay ((widget nglwidget) delay)
-  "unit of millisecond
-  "
-  (%remote-call widget "setDelay" :target "Widget"
-                :args (list delay)))
-
-(defmethod %set-spin ((widget nglwidget) axis angle)
-  (%remote-call widget "setSpin"
+; p:_set_spin
+(defun %set-spin (instance axis angle)
+  (%remote-call instance "setSpin"
                 :target "Stage"
                 :args (list axis angle)))
 
@@ -751,7 +733,7 @@
                 :target "Widget"))
 
 (defmethod color-by ((widget nglwidget) color-scheme &key (component 0))
-  (let ((repr-names (get-repr-names-from-dict (ngl-repr-dict widget) component))
+  (let ((repr-names (get-repr-names-from-dict (%ngl-repr-dict widget) component))
         (index 0))
     (loop for _ in repr-names
        do
@@ -828,7 +810,7 @@
     (make-instance 'representation-control :%view widget
                    :component-index component
                    :repr-index repr-index
-                   :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (ngl-repr-dict widget) c) r) "type"))))
+                   :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (%ngl-repr-dict widget) c) r) "type"))))
 
 ; (defmethod %set-coordinates ((widget nglwidget) index)
 ;   "Update coordinates for all trajectories at index-th frame"
@@ -1048,7 +1030,7 @@
         (setf (loaded widget) nil))
       (setf (loaded widget) (j:json-getf content "data")))
     ("request_repr_dict"
-       (setf (ngl-repr-dict widget) (j:json-getf content "data")))
+       (setf (%ngl-repr-dict widget) (j:json-getf content "data")))
     ("stage_parameters"
       (let ((stage-parameters (jupyter:json-to-plist (j:json-getf content "data") :symbol-case :camel)))
         (setf (%ngl-full-stage-parameters widget) stage-parameters)
@@ -1128,7 +1110,7 @@ kwargs=kwargs2)
 
 ; p:add_structure
 (defun add-structure (self structure &rest kwargs)
-  (jupyter:inform :info nil "In add-structure  (loaded self) -> ~a   (already-constructed self) -> ~a" (loaded self) (already-constructed self))
+  (jupyter:inform :info nil "In add-structure  (loaded self) -> ~a" (loaded self))
   (if (not (typep structure 'structure))
       (error "~s is not an instance of structure" structure))
   (apply '%load-data self structure kwargs)

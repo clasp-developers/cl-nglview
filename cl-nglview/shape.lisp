@@ -1,10 +1,13 @@
 (in-package :nglview)
 
-(jupyter:inform :info nil "in shape.lisp")
-
 (defclass shape ()
-  ((view :initarg :view :accessor view :initform nil)
-   (names :accessor names :type list :initform (list "mesh" "sphere" "ellipsoid" "cylinder" "cone" "arrow" "label" "text"))))
+  ((%view
+     :initarg :%view
+     :accessor %view)
+   (names
+     :accessor names
+     :initform (list "mesh" "sphere" "ellipsoid" "cylinder" "cone" "arrow" "label" "text")
+     :type list)))
 
 ; TWB: Removed b.c. it breaks in SBCL
 ;;I would like to imitate shape.py::%-init--

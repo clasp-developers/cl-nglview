@@ -22,6 +22,7 @@
                (:file "queue")
                (:file "utils-local")
                (:file "layout")
+               (:file "base")
                (:file "shape")
                (:file "pythread")
                (:file "stage")
@@ -29,6 +30,7 @@
                (:file "adaptor")
                (:file "representation")
                (:file "player")
+               (:file "viewer-control")
                (:file "widget")
                (:file "show")))
 
