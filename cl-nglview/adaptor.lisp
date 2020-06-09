@@ -76,6 +76,43 @@
     (drakma:http-request (format nil (url instance) (pdbid instance) (ext instance)))))
 
 
+(defun read-pdb-frames (&optional input-stream)
+  (do* ((line (read-line input-stream nil nil)
+              (read-line input-stream nil nil))
+        (record-type (when line (subseq line 0 6))
+                     (when line (subseq line 0 6)))
+        (frame (make-array 30 :fill-pointer 0 :adjustable t :element-type 'single-float))
+        frames index)
+       ((null line) frames)
+    (cond
+      ((string= record-type "MODEL ")
+        (setq index (1- (parse-integer (subseq line 10 14))))
+        (setf (fill-pointer frame) 0))
+      ((string= record-type "ENDMDL")
+        (setq frames (acons index (coerce frame (list 'simple-array 'single-float (list (length frame)))) frames)))
+      ((or (string= record-type "ATOM  ")
+           (string= record-type "HETATM"))
+        (vector-push-extend (parse-float:parse-float (subseq line 30 38)) frame)
+        (vector-push-extend (parse-float:parse-float (subseq line 38 46)) frame)
+        (vector-push-extend (parse-float:parse-float (subseq line 46 54)) frame)))))
+
+(defclass pdb-id-trajectory (pdb-id-structure trajectory)
+  ((frames
+     :accessor frames
+     :initform nil)))
+
+(defmethod initialize-instance :after ((instance pdb-id-trajectory) &rest initargs &key &allow-other-keys)
+  (with-input-from-string (input-stream (get-structure-string instance))
+    (setf (frames instance) (read-pdb-frames input-stream)))
+  instance)
+
+(defmethod get-coordinates ((instance pdb-id-trajectory) index)
+  (cdr (assoc index (frames instance))))
+
+(defmethod n-frames ((instance pdb-id-trajectory))
+  (length (frames instance)))
+
+
 (defclass ASEstructure (structure)
   ((ase-atoms :initarg :ase-atoms :accessor ase-atoms
 	      :initform nil)

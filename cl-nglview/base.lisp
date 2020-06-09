@@ -3,7 +3,7 @@
 (defclass base-widget (jw:dom-widget)
   ((%msg-q ; _msg_q
      :accessor %msg-q
-     :initform (clext.queue:make-queue 'base-widget))
+     :initform (clext.queue:make-queue (gensym)))
    (%msg-ar ; p:_msg_ar
      :accessor %msg-ar
      :initform nil

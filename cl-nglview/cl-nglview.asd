@@ -8,6 +8,7 @@
                :common-lisp-jupyter
                :drakma
                :bordeaux-threads
+               :parse-float
                :purl
                :trivial-garbage)
   :serial t

@@ -1,10 +1,12 @@
 (in-package :nglview)
 
-(defun show-pdbid (pdbid &rest kwargs &key &allow-other-keys)
-  (let ((structure (make-instance 'pdb-id-structure :pdbid pdbid)))
-    (values (apply #'make-nglwidget :structure structure kwargs)
+(defun show-pdbid (pdbid &rest kwargs &key trajectory gui &allow-other-keys)
+  (let ((structure (if trajectory
+                     (make-instance 'pdb-id-trajectory :pdbid pdbid)
+                     (make-instance 'pdb-id-structure :pdbid pdbid))))
+    (values (apply #'make-nglwidget :structure structure :gui-style (when gui "ngl") kwargs)
             (id structure)
-            (structure))))
+            structure)))
 
 (defun show-url (url &rest kwargs &key &allow-other-keys)
   (let ((view (make-nglwidget)))

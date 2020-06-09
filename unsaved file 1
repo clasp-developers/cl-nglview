@@ -1,2 +1,4 @@
-(defun is-url (src)
-  (handler-case (purl:url-scheme src) (purl::malformed-url () nil)))
+Starting cclasp-boehm-0.4.2-2694-g6630803ac-cst ... loading image...
+Starting cclasp-boehm-0.4.2-2694-g6630803ac-cst ... loading image...
+WWrriittiinngg  jjiitttteedd  ssyymmbboollss  ttoo  //ttmmpp//ppeerrff--5500007763..mmaapp
+

@@ -22,13 +22,16 @@
    (frame ; p:frame
      :accessor frame
      :initform 0
-     :type Integer
-     :trait :int)
+     :trait :float)
    (max-frame ; p:max_frame
      :accessor max-frame
      :initform 0
      :type Integer
      :trait :int)
+   (%step ; The isn't the python code b.c. they still have the remains of the old player.
+     :accessor %step
+     :initform 1
+     :trait :float)
    (background ; p:background
      :accessor background
      :initform "white"
@@ -234,9 +237,10 @@
         self.player = trajectory-player(self)
         self._already_constructed = True
    ||#
-   (%player
-     :accessor player
-     :initform nil)
+   ; BURN
+   ; (%player
+   ;   :accessor player
+   ;   :initform nil)
    (%init-representations
      :accessor init-representations
      :initform nil))
@@ -264,10 +268,11 @@
         (make-instance 'stage :%view instance)
 
         (control instance)
-        (make-instance 'viewer-control :%view instance)
+        (make-instance 'viewer-control :%view instance))
 
-        (player instance)
-        (make-instance 'trajectory-player :%view instance))
+        ; BURN
+        ; (player instance)
+        ; (make-instance 'trajectory-player :%view instance))
 
   (let ((kwargs (copy-list initargs))
         (structure (getf initargs :structure)))
@@ -281,7 +286,7 @@
 
     (cond
       ((typep structure 'trajectory)
-        (add-trajectory instance structure :name (apply #'get-name structure kwargs)))
+        (add-trajectory instance structure)); :name (apply #'get-name structure kwargs)))
       ((typep structure 'structure)
         (add-structure instance structure))
       ((listp structure)
@@ -324,14 +329,28 @@
 
 ; p:_create_player
 (defun %create-player (instance)
-  (let ((player (make-instance 'jw:play :max (max-frame instance) :interval 100))
-        (slider (make-instance 'jw:int-slider :max (max-frame instance))))
+  (let ((player (make-instance 'jw:play :max (max-frame instance)))
+        (slider (make-instance 'jw:int-slider :max (max-frame instance) :continuous-update t)))
     (setf (%iplayer instance)
           (make-instance 'jw:h-box :children (list player slider)))
     (jw:link player :value slider :value)
-    (jw:link player :value instance :frame)
-    (jw:link player :max instance :max-frame)
-    (jw:link slider :max instance :max-frame)))
+    (jw:observe player :value
+      (lambda (player name type old-value new-value source)
+        (declare (ignore player name type old-value source))
+        (setf (frame instance) new-value)))
+    ;(jw:link player :value slider :value)
+    (jw:observe instance :max-frame
+      (lambda (instance name type old-value new-value source)
+        (declare (ignore instance name type old-value source))
+        (setf (jw:widget-max player) new-value)
+        (setf (jw:widget-max slider) new-value)))
+    (jw:observe instance :%step
+      (lambda (instance name type old-value new-value source)
+        (declare (ignore instance name type old-value source))
+        (setf (jw:widget-step player) new-value)
+        (setf (jw:widget-step slider) new-value)))))
+    ;(jw:directional-link instance :max-frame player :max)))
+    ;(jw:link slider :max instance :max-frame)))
 
 (defun %trajlist (instance)
   (remove-if-not (lambda (component)
@@ -474,11 +493,12 @@
              (slot-boundp self '%pick-history))
     (push new (pick-history self))
     (setf (pick-history self)
-          (subseq (pick-history self) 0 (min *pick-history-depth* (length (pick-history self))))))
-  (when (and (player self) (widget-picked (player self)))
-    (setf (jupyter-widgets:widget-value (widget-picked (player self)))
-          (with-output-to-string (stream)
-            (pprint new stream)))))
+          (subseq (pick-history self) 0 (min *pick-history-depth* (length (pick-history self)))))))
+  ; BURN
+  ; (when (and (player self) (widget-picked (player self)))
+  ;   (setf (jupyter-widgets:widget-value (widget-picked (player self)))
+  ;         (with-output-to-string (stream)
+  ;           (pprint new stream)))))
 
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :background)) old new source)
   (declare (ignore type name old source))
@@ -491,74 +511,76 @@
 ;     (vector-push-extend (jupyter:make-uuid)
 ;                         (%ngl-component-ids self))))
 
+; BURN
 ; p:_handle_n_components_changed
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new source)
-  (declare (ignore type name old source))
-  (jupyter:inform :info self "n-components ~A" new)
-  (when (player self)
-    (when (widget-repr (player self))
-      (let ((component-slider (widget-component-slider (player self))))
-        (when (>= (1- new) (min component-slider))
-          (setf (jupyter-widgets:widget-max component-slider) (1- new))))
-      (let ((component-dropdown (widget-component-dropdown (player self))))
+; (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :n-components)) old new source)
+;   (declare (ignore type name old source))
+;   (jupyter:inform :info self "n-components ~A" new)
+;   (when (player self)
+;     (when (widget-repr (player self))
+;       (let ((component-slider (widget-component-slider (player self))))
+;         (when (>= (1- new) (min component-slider))
+;           (setf (jupyter-widgets:widget-max component-slider) (1- new))))
+;       (let ((component-dropdown (widget-component-dropdown (player self))))
         ;; component_dropdown.options = tuple(self._ngl_component_names)
-        (setf (jupyter-widgets:widget-%options-labels component-dropdown)
-              (mapcar #'name (components self)))
-        (when (= new 0)
-          (setf (jupyter-widgets:widget-%options-labels component-dropdown) nil
-                (jupyter-widgets:widget-value component-dropdown) " "
-                (jupyter-widgets:widget-max component-slider) 0)
-          (let ((reprlist-choices (widget-repr-choices (player self))))
-            (setf (jupyter-widgets:widget-options reprlist-choices) nil))
-          (let ((reprlist-slider (widget-repr-slider (player self))))
-            (setf (jupyter-widgets:widget-max repr-slider) 0))
-          (let ((repr-name-text (widget-repr-name (player self)))
-                (repr-name-selection (widget-repr-selection (player self))))
-            (setf (jupyter-widgets:widget-value repr-name-text) " "
-                  (jupyter-widgets:widget-value repr-selection) " ")))))))
+;         (setf (jupyter-widgets:widget-%options-labels component-dropdown)
+;               (mapcar #'name (components self)))
+;         (when (= new 0)
+;           (setf (jupyter-widgets:widget-%options-labels component-dropdown) nil
+;                 (jupyter-widgets:widget-value component-dropdown) " "
+;                 (jupyter-widgets:widget-max component-slider) 0)
+;           (let ((reprlist-choices (widget-repr-choices (player self))))
+;             (setf (jupyter-widgets:widget-options reprlist-choices) nil))
+;           (let ((reprlist-slider (widget-repr-slider (player self))))
+;             (setf (jupyter-widgets:widget-max repr-slider) 0))
+;           (let ((repr-name-text (widget-repr-name (player self)))
+;                 (repr-name-selection (widget-repr-selection (player self))))
+;             (setf (jupyter-widgets:widget-value repr-name-text) " "
+;                   (jupyter-widgets:widget-value repr-selection) " ")))))))
 
 (defun subseq-after (item seq)
   (let ((pos (position item seq)))
     (when pos
       (subseq seq (1+ pos)))))
 
+; BURN
 ; p:_handle_repr_dict_changed
-(defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%ngl-repr-dict)) old new source)
-  (declare (ignore type name old source))
-  (when (and (slot-boundp self '%player) (player self) (widget-repr (player self)))
-    (let* ((repr-slider (widget-repr-slider (player self)))
-           (component-slider (widget-component-slider (player self)))
-           (repr-name-text (widget-repr-name (player self)))
-           (repr-selection (widget-repr-selection (player self)))
-           (reprlist-choices (widget-repr-choices (player self)))
-           (repr-names (get-repr-names-from-dict (%ngl-repr-dict self) (value component-slider))))
-      (cond
-        ((and (consp new)
-              (= (length new) 1)
-              (consp (car new))
-              (= (car (car new)) 0)
-              (eq (cdr (car new)) nil))
-          (setf (jupyter-widgets:widget-value repr-selection) ""))
-        (t
-          (setf (jupyter-widgets:widget-%options-labels reprlist-choices)
-                (mapcar (lambda (index name)
-                          (format nil "~A-~A" index name))
-                        (alexandria:iota (length repr-names))
-                        repr-names)
+; (defmethod jupyter-widgets:on-trait-change ((self nglwidget) type (name (eql :%ngl-repr-dict)) old new source)
+;   (declare (ignore type name old source))
+;   (when (and (slot-boundp self '%player) (player self) (widget-repr (player self)))
+;     (let* ((repr-slider (widget-repr-slider (player self)))
+;            (component-slider (widget-component-slider (player self)))
+;            (repr-name-text (widget-repr-name (player self)))
+;            (repr-selection (widget-repr-selection (player self)))
+;            (reprlist-choices (widget-repr-choices (player self)))
+;            (repr-names (get-repr-names-from-dict (%ngl-repr-dict self) (value component-slider))))
+;       (cond
+;         ((and (consp new)
+;               (= (length new) 1)
+;               (consp (car new))
+;               (= (car (car new)) 0)
+;               (eq (cdr (car new)) nil))
+;           (setf (jupyter-widgets:widget-value repr-selection) ""))
+;         (t
+;           (setf (jupyter-widgets:widget-%options-labels reprlist-choices)
+;                 (mapcar (lambda (index name)
+;                           (format nil "~A-~A" index name))
+;                         (alexandria:iota (length repr-names))
+;                         repr-names)
 
-                (jupyter-widgets:widget-index reprlist-choices)
-                (jupyter-widgets:widget-value repr-slider.value)
+;                 (jupyter-widgets:widget-index reprlist-choices)
+;                 (jupyter-widgets:widget-value repr-slider.value)
 
-                (jupyter-widgets:widget-max repr-slider)
-                (max 0 (1- (length repr-names)))
+;                 (jupyter-widgets:widget-max repr-slider)
+;                 (max 0 (1- (length repr-names)))
 
-                (jupyter-widgets:widget-value repr-name-text)
-                (subseq-after #\- (nth (jupyter-widgets:widget-index reprlist-choices) (jupyter-widgets:widget-%options-labels reprlist-choices)))))))))
+;                 (jupyter-widgets:widget-value repr-name-text)
+;                 (subseq-after #\- (nth (jupyter-widgets:widget-index reprlist-choices) (jupyter-widgets:widget-%options-labels reprlist-choices)))))))))
 
 
 
 (defmethod %update-count ((widget nglwidget))
-  (setf (count widget) (apply #'max (loop for traj in (%trajlist widget) collect (n-frames traj))))
+  (setf (max-frame widget) (apply #'max 0 (mapcar #'n-frames (components widget))))
   (values))
 
 
@@ -667,18 +689,21 @@
 (defmethod jupyter-widgets:%display ((widget nglwidget) &rest args &key gui use-box &allow-other-keys)
   (declare (ignore args))
   (jupyter:inform :info widget "%display")
-  (cond
-    ((not gui)
-      widget)
-    (use-box
-      (make-instance 'jupyter-widgets:h-box
+  (setf (%gui-theme widget) (when gui "ngl"))
+  widget)
+  ; BURN
+  ; (cond
+  ;   ((not gui)
+  ;     widget)
+  ;   (use-box
+  ;     (make-instance 'jupyter-widgets:h-box
 
-                     :children (list widget (jupyter-widgets:%display (player widget)))))
-    (t
-      (make-instance 'jupyter-widgets:v-box
-                     :layout (make-instance 'jupyter-widgets:layout
-                                            :align-items "stretch")
-                     :children (list widget (jupyter-widgets:%display (player widget)))))))
+  ;                    :children (list widget (jupyter-widgets:%display (player widget)))))
+  ;   (t
+  ;     (make-instance 'jupyter-widgets:v-box
+  ;                    :layout (make-instance 'jupyter-widgets:layout
+  ;                                           :align-items "stretch")
+  ;                    :children (list widget (jupyter-widgets:%display (player widget)))))))
 
 ; p:_set_size
 (defun %set-size (instance width height)
@@ -817,17 +842,17 @@
                    :repr-index repr-index
                    :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (%ngl-repr-dict widget) c) r) "type"))))
 
-; (defmethod %set-coordinates ((widget nglwidget) index)
-;   "Update coordinates for all trajectories at index-th frame"
-;   (when (and (slot-boundp widget '%trajlist) (%trajlist widget))
-;     (let ((coordinates-dict ()))
-      ;;
-      ;; TODO: Do something for interpolation
-      ;;
-;       (loop for trajectory in (%trajlist widget)
-;             for traj-index = (position (id trajectory) (%ngl-component-ids widget))
-;             do (push (cons traj-index (nglv::get-coordinates trajectory index)) coordinates-dict))
-;       (set-coordinates widget coordinates-dict))))
+(defun %set-coordinates (widget index)
+  "Update coordinates for all trajectories at index-th frame"
+  (set-coordinates widget
+    (do* ((components-tail (components widget) (cdr components-tail))
+          (component (car components-tail) (car components-tail))
+          (component-index 0 (1+ component-index))
+          coordinates-dict)
+         ((null components-tail) coordinates-dict)
+      (when (typep component 'trajectory)
+        (push (cons component-index (get-interpolated-coordinates component index))
+              coordinates-dict)))))
 
 (defun ensure-simple-vector-float (coordinates)
   (if (typep coordinates '(simple-array single-float *))
@@ -843,17 +868,17 @@
         (let (buffers
               coordinates-meta)
           (loop for (index . arr) in (coordinates-dict widget)
-                for byte-buffer = arr ;(core:coerce-memory-to-foreign-data (ensure-simple-vector-float arr))
-                do (jupyter:inform :info widget "buffer: ~A" arr)
+                for byte-buffer = arr ; (core:coerce-memory-to-foreign-data (ensure-simple-vector-float arr))
+                do (jupyter:inform :info widget "buffer: ~A" (type-of arr))
                 do (push byte-buffer buffers)
                 ;do (jupyter:inform :info nil "number of xyz coords: ~a    number of bytes: ~a" (length arr) (clasp-ffi:foreign-data-size byte-buffer))
                 do (push (cons (princ-to-string index) index) coordinates-meta))
           (let ((mytime (* (/ (get-internal-run-time) internal-time-units-per-second) 1000.0)))
             (jupyter-widgets:send-custom widget
                                          (j:json-new-obj ("type" "binary_single")
-                                                       ("data" coordinates-meta)
+                                                       ("data" (cons :obj coordinates-meta))
                                                        ("mytime" mytime))
-                                         (coerce (nreverse buffers) 'vector)))))
+                                         (nreverse buffers)))))
     (values)))
 
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :frame)) old new source)
@@ -1011,25 +1036,26 @@
   (jupyter:inform :info widget "Handling custom message ~A" (j:json-getf content "type"))
   (setf (ngl-msg widget) content)
   (alexandria:switch ((j:json-getf content "type") :test #'string=)
-    ("request_frame"
-      (incf (frame widget) (%step (player widget)))
-      (if (>= (frame widget) (count widget))
-        (setf (frame widget) 0)
-        (if (< (frame widget) 0)
-          (setf (frame widget) (1- (count widget))))))
+    ; BURN?
+    ; ("request_frame"
+    ;   (if (>= (frame widget) (count widget))
+    ;     (setf (frame widget) 0)
+    ;     (if (< (frame widget) 0)
+    ;       (setf (frame widget) (1- (count widget))))))
     ("updateIDs"
       (setf (%ngl-view-id widget)
             (j:json-getf content "data")))
-    ("repr_parameters"
-      (let ((data (j:json-getf content "data")))
-        (when (and (player widget)
-                   (widget-repr-name (player widget))
-                   (widget-repr-selection (player widget)))
-          (setf (jupyter-widgets:widget-value (widget-repr-name (player widget)))
-                (j:json-getf data "name")
+    ; BURN
+    ; ("repr_parameters"
+    ;   (let ((data (j:json-getf content "data")))
+    ;     (when (and (player widget)
+    ;                (widget-repr-name (player widget))
+    ;                (widget-repr-selection (player widget)))
+    ;       (setf (jupyter-widgets:widget-value (widget-repr-name (player widget)))
+    ;             (j:json-getf data "name")
 
-                (jupyter-widgets:widget-value (widget-repr-selection (player widget)))
-                (j:json-getf data "sele")))))
+    ;             (jupyter-widgets:widget-value (widget-repr-selection (player widget)))
+    ;             (j:json-getf data "sele")))))
     ("request_loaded"
       (unless (loaded widget)
         (setf (loaded widget) nil))
@@ -1127,12 +1153,11 @@ kwargs=kwargs2)
 
 ; p:add-trajectory
 (defun add-trajectory (widget trajectory &rest kwargs)
-  (jupyter:inform :info nil "entered add-trajectory")
-  (apply '%load-data widget trajectory kwargs)
   (setf (shown trajectory) t)
+  (apply '%load-data widget trajectory kwargs)
+  (setf (components widget)
+        (append (components widget) (list trajectory)))
   (%update-count widget)
-  (setf (components self)
-        (append (components self) (list trajectory)))
   (id trajectory))
 
 ; p:add_pdbid
@@ -1144,7 +1169,7 @@ kwargs=kwargs2)
   (apply '%load-data instance filename kwargs))
 
 ; p:_load_data
-(defun %load-data (widget obj &key kwargs)
+(defun %load-data (widget obj &rest kwargs)
   (jupyter:inform :info nil "entered %load-data ~A" kwargs)
   (check-type kwargs list)
   (let* ((kwargs2 (camelize-dict kwargs))
