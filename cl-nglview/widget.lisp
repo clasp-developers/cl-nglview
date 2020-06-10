@@ -352,12 +352,14 @@
     ;(jw:directional-link instance :max-frame player :max)))
     ;(jw:link slider :max instance :max-frame)))
 
+; p:_trajlist
 (defun %trajlist (instance)
   (remove-if-not (lambda (component)
                    (typep component 'trajectory))
                  (components instance)))
 
-(defmethod %set-serialization ((self nglwidget) &optional frame-range)
+; p:_set_serialization
+(defun %set-serialization (self &optional frame-range)
   (setf (%ngl-serialize self) t)
   (setf (ngl-msg-archive self)
          (mapcar (lambda (callback)
@@ -383,80 +385,18 @@
       ||#
       )))
 
-(defmethod %unset-serialization ((self nglwidget))
+; p:_unset_serialization
+(defun %unset-serialization (instance)
   (setf (%ngl-serialize self) nil
-        (ngl-msg-archive self) nil
-        (ngl-coordinate-resource self) nil
-        (%ngl-full-stage-parameters-embed self) nil))
-
-
-#|
-(defun (setf parameters) (params widget)
-  (let ((params (camelize-dict params)))
-    (setf (parameters widget) params)
-    (%remote-call widget "setParameters"
-		  :target "Widget"
-		  :args params))
-  params)
-|#
-
-
-  #|
-   if isinstance(structure, trajectory):
-   name = py_utils.get_name(structure, kwargs)
-   self.add_trajectory(structure, name=name)
-   elif isinstance(structure, (list, tuple)):
-   trajectories = structure
-   for trajectory in trajectories:
-   name = py_utils.get_name(trajectory, kwargs)
-   self.add_trajectory(trajectory, name=name)
-   else:
-   if structure is not None:
-   self.add_structure(structure, **kwargs)
-   |#
-#|   
-   # call before setting representations
-   self._set_initial_structure(self._init_structures)
-   if representations:
-   self._init_representations = representations
-   else:
-   self._init_representations = [
-   {"type": "cartoon", "params": {
-   "sele": "polymer"
-   }},
-   {"type": "ball+stick", "params": {
-   "sele": "hetero OR mol"
-   }},
-   {"type": "ball+stick", "params": {
-   "sele": "not protein and not nucleic"
-   }}
-   ]
-   |#
-
-#|
-;;; Duplicate code
-(defmethod %fire-callbacks ((widget nglwidget) callbacks)
-  (loop for callback in callbacks
-     do (progn
-          (funcall (car callback) widget)
-          (when (string= (cdr callback) "loadFile")
-            (%wait-until-finished widget)))))
-    
-(defmethod %wait-until-finished ((widget nglwidget) &optional (timeout 0.0001))
-  (pythread:clear (event widget))
-  (loop
-     (sleep timeout)
-     (when (pythread:is-set (event widget))
-       (return-from %wait-until-finished))))
-|#
-
-
+        (%ngl-coordinate-resource self) nil))
 
 (defmethod (setf parameters) :after (new-value (instance nglwidget))
   (%remote-call instance "setParameters"
     :target "Widget"
     :args (list (cons :obj (dict-from-plist new-value)))))
 
+; Fix this after enums added to common-lisp-jupyter
+; p:camera
 (defmethod camera ((widget nglwidget))
   (cond
     ((string= (camera-str widget) "orthographic")
@@ -476,13 +416,15 @@
                   :target "Stage"
                   :kwargs (dict-from-plist (list :camera-type camera-str)))))
 
-(defmethod %set-camera-orientation ((self nglwidget) arr)
-  (%remote-call self "set_camera_orientation"
+; p:_set_camera_orientation
+(defun %set-camera-orientation (instance arr)
+  (%remote-call instance "set_camera_orientation"
                 :target "Widget"
                 :args (list arr)))
 
-(defmethod %request-stage-parameters ((self nglwidget))
-  (%remote-call self
+; p:_request_stage_parameters
+(defun %request-stage-parameters (instance)
+  (%remote-call instance
                 "requestUpdateStageParameters"
                 :target "Widget"))
 
@@ -578,21 +520,23 @@
 ;                 (subseq-after #\- (nth (jupyter-widgets:widget-index reprlist-choices) (jupyter-widgets:widget-%options-labels reprlist-choices)))))))))
 
 
-
-(defmethod %update-count ((widget nglwidget))
-  (setf (max-frame widget) (apply #'max 0 (mapcar #'n-frames (components widget))))
+; p:_update_max_frame
+(defun %update-max-frame (instance)
+  (setf (max-frame instance)
+        (apply #'max 0 (mapcar #'n-frames (components instance))))
   (values))
 
-
-(defmethod wait-until-finished ((widget nglwidget) &optional (timeout 1.0))
-  (jupyter:inform :info nil "entered wait-until-finished")
+; p:_wait_until_finished
+(defmethod %wait-until-finished ((widget nglwidget) &optional (timeout 1.0))
+  (jupyter:inform :info nil "entered %wait-until-finished")
   (pythread:clear (event widget))
   (loop
     (sleep timeout)
     (when (pythread:is-set (event widget))
-      (return-from wait-until-finished))
-    (jupyter:inform :info nil "woke wait-until-finished after timeout ~a continuing to wait" timeout)))
+      (return-from %wait-until-finished))
+    (jupyter:inform :info nil "woke %wait-until-finished after timeout ~a continuing to wait" timeout)))
 
+; p:_run_on_another_thread
 (defmethod %run-on-another-thread ((self nglwidget) func &rest args)
   (error "Finish %run-on-another-thread")
 #|
@@ -607,6 +551,7 @@
         return thread
 |#)
 
+; p:on_loaded
 (defmethod (setf loaded) :after (new (widget nglwidget))
   ;;;(setf (loaded widget) t)
   (jupyter:inform :info nil "entered on-loaded - firing before-loaded callbacks new -> ~a" new)
@@ -614,6 +559,7 @@
     (when (slot-boundp widget '%ngl-displayed-callbacks-before-loaded-reversed)
       (%fire-callbacks widget (ngl-displayed-callbacks-before-loaded-reversed widget)))))
 
+; p:_fire_callbacks
 (defmethod %fire-callbacks ((widget nglwidget) callbacks)
   (jupyter:inform :info nil "%fire-callbacks entered in process ~s~%  callbacks: ~s" (bordeaux-threads:current-thread)
                    (loop for x in callbacks
@@ -626,66 +572,13 @@
                       (pythread:fire-callback callback widget)
                       (when (string= (pythread:method-name callback) "loadFile")
                         (jupyter:inform :info nil "    Waiting until finished")
-                        (wait-until-finished widget))))))
+                        (%wait-until-finished widget))))))
     (bordeaux-threads:make-thread (lambda () (_call))
                              :initial-bindings nil ; FIXME: cl-jupyter:*default-special-bindings*
                              :name "fire-callbacks-thread"))
   (jupyter:inform :info nil "Done %fire-callbacks"))
 
-(defmethod %refresh-render ((widget nglwidget))
-  "useful when you update coordinates for a single structure.
-
-        Notes
-        -----
-        If you are visualizing a trajectory with more than 1 frame, you can use the
-        player slider to trigger the refreshing.
-        "
-  (let ((current-frame (frame widget)))
-    (setf (frame widget) (expt 10 6)
-          (frame widget) current-frame)))
-
-(defmethod sync-view ((widget nglwidget))
-  "Call this if you want to sync multiple views of a single viewer
-   Note: unstable feature"
-  (jupyter:inform :info nil "entered sync-view")
-  (let (new-callbacks)
-    (loop for c in (reverse (ngl-displayed-callbacks-after-loaded-reversed widget))
-          do (let (ngl-msg-kwargs-default-representation)
-               (when (and (string= (pythread:method-name c) "loadFile")
-                          (setf ngl-msg-kwargs-default-representation (assoc "defaultRepresentation" (cdr (assoc "kwargs" (ngl-msg c) :test #'string=)) :test #'string=)))
-                 (rplacd ngl-msg-kwargs-default-representation nil)))
-             (let ((msg (cons (cons "last_child" t) (ngl-msg c))))
-               (let ((callback (make-instance 'remote-call-callback
-                                              :method-name (cdr (assoc "methodName" msg :test #'string=))
-                                              :ngl-msg msg)))
-                 (push callback new-callbacks))))
-    (let* ((msg (list (cons "target" "Widget")
-                      (cons "type" "call_method")
-                      (cons "methodName" "set_representation_from_backend")
-                      (cons "args" #())
-                      (cons "kwargs" (list))
-                      (cons "last_child" t)))
-           (callback (make-instance 'remote-call-callback
-                                    :method-name "set_representation_from_backend"
-                                    :ngl-msg msg)))
-      (push callback new-callbacks)
-      (%fire-callbacks widget (nreverse new-callbacks)))))
-
-
-; (defmethod %ipython-display ((widget nglwidget) &rest key &key &allow-other-keys)
-;   (if (first-time-loaded widget)
-;       (setf (first-time-loaded widget) nil)
-;       (sync-view widget))
-;   (when (init-gui widget)
-;     (when (not (gui widget))
-;       (setf (gui widget) (%display (player widget))))
-;     (display (gui widget)))
-;   (when (or (string= "dark" (theme widget)) (string= "oceans16" (theme widget)))
-;     (warn "how do we set the theme")
-;     (%remote-call widget "cleanOutput" :target "Widget"))
-;   (%ipython-display (place-proxy widget))
-;   (values))
-
+; p:display
 (defmethod jupyter-widgets:%display ((widget nglwidget) &rest args &key gui use-box &allow-other-keys)
   (declare (ignore args))
   (jupyter:inform :info widget "%display")
@@ -712,6 +605,28 @@
                 :target "Widget"
                 :args (list width height)))
 
+; p:_set_sync_repr
+(defun %set-sync-repr (instance &rest other-views)
+  (with-slots (%synced-repr-model-ids)
+              instance
+    (when other-views
+      (setf %synced-repr-model-ids
+            (union %synced-repr-model-ids (mapcar #'%model-id other-views) :test #'equal)))
+    (%remote-call instance "setSyncRepr"
+                  :target "Widget"
+                  :args %synced-repr-model-ids)))
+
+; p:_set_unsync_repr
+(defun %set-unsync-repr (instance &rest other-views)
+  (with-slots (%synced-repr-model-ids)
+              instance
+    (when other-views
+      (setf %synced-repr-model-ids
+            (set-difference %synced-repr-model-ids (mapcar #'%model-id other-views) :test #'equal)))
+    (%remote-call instance "setSyncRepr"
+                  :target "Widget"
+                  :args %synced-repr-model-ids)))
+
 ; p:_set_sync_camera
 (defun %set-sync-camera (instance &rest other-views)
   (with-slots (%synced-model-ids)
@@ -729,8 +644,8 @@
               instance
     (when other-views
       (setf %synced-model-ids
-            (union %synced-model-ids (mapcar #'%model-id other-views) :test #'equal)))
-    (%remote-call instance "setUnSyncCamera"
+            (set-difference %synced-model-ids (mapcar #'%model-id other-views) :test #'equal)))
+    (%remote-call instance "setSyncCamera"
                   :target "Widget"
                   :args %synced-model-ids)))
 
@@ -740,6 +655,7 @@
                 :target "Stage"
                 :args (list axis angle)))
 
+; p:_set_selection
 (defmethod %set-selection ((widget nglwidget) &key selection (component 0) (repr-index 0))
   (%remote-call widget "setSelection"
                 :target "Representation"
@@ -747,21 +663,7 @@
                 :kwargs (list (cons "component_index" component)
                               (cons "repr_index" repr-index))))
 
-(defmethod %set-color-by-residue ((widget nglwidget) &key colors (component-index 0) (repr-index 0))
-  (%remote-call widget "setColorByResidue"
-                :target "Widget"
-                :args (list colors component-index repr-index)))
-
-(defmethod %show-notebook-command-box ((self nglwidget))
-  (%remote-call self
-                "showNotebookCommandBox"
-                :target "Widget"))
-
-(defmethod %hide-notebook-command-box ((self nglwidget))
-  (%remote-call self
-                "hideNotebookCommandBox"
-                :target "Widget"))
-
+; p:color_by
 (defmethod color-by ((widget nglwidget) color-scheme &key (component 0))
   (let ((repr-names (get-repr-names-from-dict (%ngl-repr-dict widget) component))
         (index 0))
@@ -777,6 +679,7 @@
   (dotimes (index (length (components instance)))
     (set-representation instance value :component index)))
 
+; p:update_representation
 (defmethod update-representation ((widget nglwidget) &optional (component 0)
                                   (repr-index 0) &rest parameters)
   (%remote-call widget
@@ -794,6 +697,7 @@
   (%remote-call widget-instance "request_repr_dict" :target "Widget"))
 
 
+; p:set_representations
 (defmethod set-representations ((widget nglwidget) representations &key (component 0))
   (clear-representations widget :component component)
   (let ((kwargs ""))
@@ -818,6 +722,7 @@
                 :target "Widget"
                 :args (list component repr-index)))
 
+; p:_remove_representations_by_name
 (defmethod %remove-representations-by-name ((widget nglwidget) repr-name &key (component 0))
   (%remote-call widget
                 "removeRepresentationsByName"
@@ -825,6 +730,7 @@
                 :args (list repr-name component))
   (values))
 
+; p:_update_representations_by_name
 (defmethod %update-representations-by-name ((widget nglwidget) repr-name &optional (component 0) &rest kwargs)
   (setf kwargs (%camelize-dict kwargs))
   (%remote-call widget
@@ -834,6 +740,7 @@
                 :kwargs kwargs)
   (values))
 
+; p:_display_repr
 (defmethod %display-repr ((widget nglwidget) &key (component 0) (repr-index 0) (name nil))
   (let ((c (format nil "c~A" component))
         (r (write-to-string repr-index)))
@@ -842,9 +749,11 @@
                    :repr-index repr-index
                    :name (jupyter:json-getf (jupyter:json-getf (jupyter:json-getf (%ngl-repr-dict widget) c) r) "type"))))
 
-(defun %set-coordinates (widget index)
+; p:_set_coordinates
+(defun %set-coordinates (widget index &key movie-making render-params)
   "Update coordinates for all trajectories at index-th frame"
-  (set-coordinates widget
+  (set-coordinates
+    widget
     (do* ((components-tail (components widget) (cdr components-tail))
           (component (car components-tail) (car components-tail))
           (component-index 0 (1+ component-index))
@@ -852,43 +761,34 @@
          ((null components-tail) coordinates-dict)
       (when (typep component 'trajectory)
         (push (cons component-index (get-interpolated-coordinates component index))
-              coordinates-dict)))))
+              coordinates-dict)))
+    :movie-making movie-making
+    :render-params render-params))
 
-(defun ensure-simple-vector-float (coordinates)
-  (if (typep coordinates '(simple-array single-float *))
-      coordinates
-      (error "Convert ~a to a simple-array of single-float" coordinates)))
-
-(defmethod set-coordinates ((widget nglwidget) arr-dict)
+; p:set_coordinates
+(defmethod set-coordinates ((widget nglwidget) arr-dict &key movie-making render-params)
   (jupyter:inform :info nil  "In nglview set-coordinates")
-  (progn
+  (let (buffers
+        coordinates-meta)
     (setf (coordinates-dict widget) arr-dict)
-    (if (null (send-binary widget))
-        (error "Handle encode64 for set-coordinates")
-        (let (buffers
-              coordinates-meta)
-          (loop for (index . arr) in (coordinates-dict widget)
-                for byte-buffer = arr ; (core:coerce-memory-to-foreign-data (ensure-simple-vector-float arr))
-                do (jupyter:inform :info widget "buffer: ~A" (type-of arr))
-                do (push byte-buffer buffers)
-                ;do (jupyter:inform :info nil "number of xyz coords: ~a    number of bytes: ~a" (length arr) (clasp-ffi:foreign-data-size byte-buffer))
-                do (push (cons (princ-to-string index) index) coordinates-meta))
-          (let ((mytime (* (/ (get-internal-run-time) internal-time-units-per-second) 1000.0)))
-            (jupyter-widgets:send-custom widget
-                                         (j:json-new-obj ("type" "binary_single")
-                                                       ("data" (cons :obj coordinates-meta))
-                                                       ("mytime" mytime))
-                                         (nreverse buffers)))))
-    (values)))
+    (loop for (index . arr) in (coordinates-dict widget)
+          for byte-buffer = arr
+          do (push byte-buffer buffers)
+          do (push (cons (princ-to-string index) index) coordinates-meta))
+    (let ((content (j:json-new-obj ("type" "binary_single")
+                                   ("data" (cons :obj coordinates-meta)))))
+      (when movie-making
+        (setf (j:json-getf content "movie_making") t)
+        (setf (j:json-getf content "render_params") (cons :obs render-params)))
+      (jupyter-widgets:send-custom widget content (nreverse buffers))))
+  (values))
 
+; p:on_frame_changed
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :frame)) old new source)
   (when (slot-boundp object 'frame)
     (%set-coordinates object (frame object))))
 
-
-(defmethod clear ((self nglwidget) &rest args)
-  (apply #'clear-representations self args))
-
+; p:clear_representations
 (defmethod clear-representations ((widget nglwidget) &key (component 0))
   (%remote-call widget
                 "removeAllRepresentations"
@@ -896,6 +796,7 @@
                 :kwargs (list (cons "component_index" component)))
   (values))
 
+; p:add_shape
 (defmethod add-shape ((self nglwidget) shapes &key (name "shape"))
   "add shape objects
 
@@ -925,6 +826,7 @@
                 :target "Widget"
                 :args (list name shapes)))
 
+; p:add_representation
 (defun add-representation (self repr-type &rest kwargs &key (use-worker nil use-worker-p) (selection "all") &allow-other-keys)
   "Add structure representation (cartoon, licorice, ...) for given atom selection.
 
@@ -996,13 +898,15 @@
                 :target "compList"
                 :args (list selection duration)
                 :kwargs (list (cons "component_index" component))))
-  
+
+; p:_on_render_image
 (defmethod jupyter-widgets:on-trait-change ((object nglwidget) type (name (eql :%image-data)) old new source)
   (declare (ignore type name old source))
   ;;;(setf (_b64value (widget-image object)) new)
   (when (and (slot-boundp object '%hold-image) (hold-image object))
     (setf (image-array object) (concatenate 'string (image-array object) new))))
 
+; P:render_image
 (defmethod render-image ((widget nglwidget) &key (frame nil) (factor 4) (antialias t) (trim nil) (transparent nil))
   (when frame
     (setf (frame widget) frame))
@@ -1016,6 +920,7 @@
                   :kwargs params))
   (values))
 
+; p:download_image
 (defmethod download-image ((widget nglwidget) &key (filename "screenshot.png")
                                                 (factor 4)
                                                 (antialias t)
@@ -1032,6 +937,7 @@
                   :kwargs params))
   (values))
 
+; p:_ngl_handle_msg
 (defmethod jupyter-widgets:on-custom-message ((widget nglwidget) content buffers)
   (jupyter:inform :info widget "Handling custom message ~A" (j:json-getf content "type"))
   (setf (ngl-msg widget) content)
@@ -1074,64 +980,7 @@
     (otherwise
       (jupyter:inform :warn "No handler for ~A" (j:json-getf content "type")))))
     
-#|    def _load_data(self, obj, **kwargs):
-  '''
-
-  Parameters
-  ----------
-  obj : nglview.structure or any object having 'get-structure-string' method or
-  string buffer (open(fn).read())
-  '''
-  kwargs2 = _camelize_dict(kwargs)
-
-  try:
-  is_url = FileManager(obj).is_url
-  except NameError:
-  is_url = False
-
-  if 'defaultRepresentation' not in kwargs2:
-  kwargs2['defaultRepresentation'] = True
-
-  if not is_url:
-  if hasattr(obj, 'get-structure-string'):
-  blob = obj.get-structure-string()
-  kwargs2['ext'] = obj.ext
-  passing_buffer = True
-  binary = False
-  else:
-  fh = FileManager(obj,
-ext=kwargs.get('ext'),
-compressed=kwargs.get('compressed'))
-  # assume passing string
-  blob = fh.read()
-  passing_buffer = not fh.use_filename
-
-  if fh.ext is None and passing_buffer:
-  raise ValueError('must provide extension')
-
-  kwargs2['ext'] = fh.ext
-  binary = fh.is_binary
-  use_filename = fh.use_filename
-
-  if binary and not use_filename:
-  # send base64
-  blob = base64.b64encode(blob).decode('utf8')
-  blob_type = 'blob' if passing_buffer else 'path'
-  args=[{'type': blob_type, 'data': blob, 'binary': binary}]
-  else:
-  # is_url
-  blob_type = 'url'
-  url = obj
-  args=[{'type': blob_type, 'data': url, 'binary': False}]
-
-  name = py_utils.get_name(obj, kwargs2)
-  self._ngl_component_names.append(name)
-  self._remote_call("loadFile",
-target='Stage',
-args=args,
-kwargs=kwargs2)
-  |#
-
+; p:_request_repr_parameters
 (defmethod %request-repr-parameters ((widget nglwidget) &key (component 0) (repr-index 0))
   (%remote-call widget
                 "requestReprParameters"
@@ -1157,7 +1006,7 @@ kwargs=kwargs2)
   (apply '%load-data widget trajectory kwargs)
   (setf (components widget)
         (append (components widget) (list trajectory)))
-  (%update-count widget)
+  (%update-max-frame widget)
   (id trajectory))
 
 ; p:add_pdbid
@@ -1346,43 +1195,17 @@ kwargs=kwargs2)
   (apply #'set-visibility instance t components))
 
 
+; p:_js_console
 (defmethod %js-console ((widget nglwidget))
-  (error "implement %js-console in widget.lisp"))
+  (jupyter-widgets:send-custom widget
+                               (j:json-new-obj ("type" "get")
+                                               ("data" "any"))))
 
-#|
-  def _js_console(self):
-  self.send(dict(type='get', data='any'))
-  |#
-
+; p:_get_full_params
 (defmethod %get-full-params ((widget nglwidget))
-  (error "Implement %get-full-params in widget.lisp"))
-#|
-  def _get_full_params(self):
-  self.send(dict(type='get', data='parameters'))
-  |#
-
-(defmethod %display-image ((widget nglwidget))
-  (error "help %display-image widget.lisp"))
-#|
-  def _display_image(self):
-  '''for testing
-  '''
-  from IPython import display
-  return display.Image(self._image_data)
-  |#
-
-
-(defmethod detach ((widget nglwidget) &key (split nil))
-  "detach player from its original container."
-  (if (not (loaded widget))
-      (error "must display view first"))
-  (if split
-      (js-utils-move-notebook-to-the-right js-utils))
-  (%remote-call widget "setDialog" :target "Widget"))
-
-
-
-
+  (jupyter-widgets:send-custom widget
+                               (j:json-new-obj ("type" "get")
+                                               ("data" "parameters"))))
 
 
 

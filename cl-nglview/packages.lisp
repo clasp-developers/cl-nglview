@@ -59,7 +59,7 @@
     #:text-structure
     #:trajectory
     #:url
-    #:wait-until-finished
+    #:%wait-until-finished
    ))
 
 (defpackage #:pythread
