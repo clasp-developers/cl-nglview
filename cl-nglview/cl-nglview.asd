@@ -22,7 +22,8 @@
                (:file "parameters")
                (:file "queue")
                (:file "utils-local")
-               (:file "layout")
+               ; BURN?
+               ; (:file "layout")
                (:file "base")
                (:module "theme"
                 :serial t
@@ -36,8 +37,9 @@
                (:file "stage")
                (:file "base_adaptor")
                (:file "adaptor")
-               (:file "representation")
-               (:file "player")
+               ; BURN
+               ; (:file "representation")
+               ; (:file "player")
                (:file "viewer-control")
                (:file "widget")
                (:file "show")))

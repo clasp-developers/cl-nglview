@@ -1172,7 +1172,7 @@ kwargs=kwargs2)
 (defun %load-data (widget obj &rest kwargs)
   (jupyter:inform :info nil "entered %load-data ~A" kwargs)
   (check-type kwargs list)
-  (let* ((kwargs2 (camelize-dict kwargs))
+  (let* ((kwargs2 (dict-from-plist kwargs))
          (is-url (is-url (make-instance 'file-manager :src obj)))
          passing-buffer binary use-filename blob
          args blob-type)
@@ -1180,6 +1180,8 @@ kwargs=kwargs2)
       (setf kwargs2 (dict-set-or-push "defaultRepresentation" kwargs2 t)))
     (if (null is-url)
         (let ((structure-string (get-structure-string obj)))
+          (unless (dict-entry "name" kwargs2)
+            (setf kwargs2 (dict-set-or-push "name" kwargs2 (name obj))))
           (if structure-string
               (setf blob structure-string
                     kwargs2 (dict-set-or-push "ext" kwargs2 (ext obj))
@@ -1200,12 +1202,12 @@ kwargs=kwargs2)
               ("type" blob-type)
                                ("data" url)
                                ("binary" :false)))))
-    (let ((name (get-name obj :dictargs kwargs2)))
+    ;(let ((name (get-name obj :dictargs kwargs2)))
       ;(vector-push-extend name (%ngl-component-names widget))
       (%remote-call widget "loadFile"
                     :target "Stage"
                     :args args
-                    :kwargs kwargs2)))
+                    :kwargs kwargs2));)
   (jupyter:inform :info nil "leaving %load-data"))
 
 (defun component-member-p (component index seq)
